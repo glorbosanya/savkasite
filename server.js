@@ -188,7 +188,13 @@ app.get("/login", (_req, res) => {
 app.get("/admin", (_req, res) => {
   res.sendFile(path.join(publicDir, "admin.html"));
 });
+app.get('/cart', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'cart.html'));
+});
 
+app.get('/product', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'product.html'));
+});
 // --- Старт сервера ---------------------------------------------------------
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
