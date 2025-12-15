@@ -1,202 +1,182 @@
-const express = require("express");
-const session = require("express-session");
-const multer = require("multer");
-const sqlite3 = require("sqlite3").verbose();
-const path = require("path");
+const express = require('express');
+const path = require('path');
+const fs = require('fs').promises;
 
 const app = express();
+const PORT = process.env.PORT || 3000;
 
-// --- Парсинг тела ----------------------------------------------------------
-app.use(express.json({ limit: "15mb" }));
-app.use(express.urlencoded({ extended: true, limit: "15mb" }));
+const DATA_DIR = path.join(__dirname, 'data');
+const PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
+const ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
 
-// --- Статика ---------------------------------------------------------------
-const publicDir = path.join(__dirname, "public");
-app.use(express.static(publicDir));
-
-// --- Сессии ----------------------------------------------------------------
-app.use(
-  session({
-    secret: "supersecretkey_esco",
-    resave: false,
-    saveUninitialized: false,
-  })
-);
-
-// --- База данных -----------------------------------------------------------
-const db = new sqlite3.Database("db.sqlite");
-
-db.run(
-  `CREATE TABLE IF NOT EXISTS products (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT,
-    code TEXT,
-    description TEXT,
-    price INTEGER,
-    category TEXT,
-    status TEXT,
-    image TEXT   -- сюда пишем data:image/...;base64,....
-  )`
-);
-
-// --- Multer: файл только в памяти, потом в base64 -------------------------
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
-
-// --- Авторизация -----------------------------------------------------------
-app.post("/api/login", (req, res) => {
-  const { login, password } = req.body;
-
-  // Поменяй на свои
-  if (login === "admin" && password === "1234") {
-    req.session.auth = true;
-    return res.json({ ok: true });
+// ---------- helpers ----------
+async function ensureDataFile(file) {
+  try {
+    await fs.access(file);
+  } catch {
+    await fs.mkdir(DATA_DIR, { recursive: true });
+    await fs.writeFile(file, '[]', 'utf8');
   }
-
-  return res.status(401).json({ error: "invalid_credentials" });
-});
-
-app.post("/api/logout", (req, res) => {
-  req.session.destroy(() => {});
-  res.json({ ok: true });
-});
-
-function requireAuth(req, res, next) {
-  if (req.session && req.session.auth) return next();
-  return res.status(403).json({ error: "not_authorized" });
 }
 
-// --- Загрузка изображения: отдаём dataURL ---------------------------------
-app.post("/api/upload", requireAuth, upload.single("file"), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: "no_file" });
+async function readJson(file) {
+  await ensureDataFile(file);
+  const txt = await fs.readFile(file, 'utf8');
+  return txt ? JSON.parse(txt) : [];
+}
 
-  const mime = req.file.mimetype || "image/jpeg";
-  const base64 = req.file.buffer.toString("base64");
-  const dataUrl = `data:${mime};base64,${base64}`;
+async function writeJson(file, data) {
+  await fs.writeFile(file, JSON.stringify(data, null, 2), 'utf8');
+}
 
-  res.json({ dataUrl });
+// ---------- middlewares ----------
+app.use(express.json({ limit: '10mb' }));
+app.use(express.static(path.join(__dirname, 'public')));
+
+// ---------- pages ----------
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// --- API товаров -----------------------------------------------------------
-
-// список (с фильтрами search/category)
-app.get("/api/products", (req, res) => {
-  const { search, category } = req.query;
-  let sql = "SELECT * FROM products WHERE 1=1";
-  const params = [];
-
-  if (search) {
-    sql += " AND (name LIKE ? OR code LIKE ?)";
-    params.push("%" + search + "%", "%" + search + "%");
-  }
-  if (category) {
-    sql += " AND category = ?";
-    params.push(category);
-  }
-
-  db.all(sql, params, (err, rows) => {
-    if (err) return res.status(500).json({ error: "db_error" });
-    res.json(rows);
-  });
-});
-
-// один товар
-app.get("/api/products/:id", (req, res) => {
-  db.get("SELECT * FROM products WHERE id = ?", [req.params.id], (err, row) => {
-    if (err) return res.status(500).json({ error: "db_error" });
-    if (!row) return res.status(404).json({ error: "not_found" });
-    res.json(row);
-  });
-});
-
-// создать
-app.post("/api/products", requireAuth, (req, res) => {
-  const p = req.body;
-  db.run(
-    `INSERT INTO products (name, code, description, price, category, status, image)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [
-      p.name,
-      p.code,
-      p.description,
-      p.price,
-      p.category,
-      p.status,
-      p.image || null,
-    ],
-    function (err) {
-      if (err) return res.status(500).json({ error: "db_error" });
-      res.json({ id: this.lastID });
-    }
-  );
-});
-
-// обновить
-app.put("/api/products/:id", requireAuth, (req, res) => {
-  const p = req.body;
-  db.run(
-    `UPDATE products SET
-      name = ?, code = ?, description = ?, price = ?,
-      category = ?, status = ?, image = ?
-     WHERE id = ?`,
-    [
-      p.name,
-      p.code,
-      p.description,
-      p.price,
-      p.category,
-      p.status,
-      p.image || null,
-      req.params.id,
-    ],
-    function (err) {
-      if (err) return res.status(500).json({ error: "db_error" });
-      res.json({ ok: true, changed: this.changes });
-    }
-  );
-});
-
-// удалить
-app.delete("/api/products/:id", requireAuth, (req, res) => {
-  db.run(
-    "DELETE FROM products WHERE id = ?",
-    [req.params.id],
-    function (err) {
-      if (err) return res.status(500).json({ error: "db_error" });
-      res.json({ ok: true, deleted: this.changes });
-    }
-  );
-});
-
-// --- Красивые URL для страниц ---------------------------------------------
-app.get("/", (_req, res) => {
-  res.sendFile(path.join(publicDir, "index.html"));
-});
-
-app.get("/catalog", (_req, res) => {
-  res.sendFile(path.join(publicDir, "catalog.html"));
-});
-
-app.get("/product", (_req, res) => {
-  res.sendFile(path.join(publicDir, "product.html"));
-});
-
-app.get("/login", (_req, res) => {
-  res.sendFile(path.join(publicDir, "login.html"));
-});
-
-app.get("/admin", (_req, res) => {
-  res.sendFile(path.join(publicDir, "admin.html"));
-});
-app.get('/cart', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'cart.html'));
+app.get('/catalog', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'catalog.html'));
 });
 
 app.get('/product', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'product.html'));
 });
-// --- Старт сервера ---------------------------------------------------------
-const PORT = process.env.PORT || 3000;
+
+app.get('/cart', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'cart.html'));
+});
+
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+// ---------- PRODUCTS API ----------
+app.get('/api/products', async (req, res) => {
+  const products = await readJson(PRODUCTS_FILE);
+  let filtered = products;
+
+  const { search, category } = req.query;
+
+  if (search) {
+    const s = search.toLowerCase();
+    filtered = filtered.filter(
+      (p) =>
+        (p.name && p.name.toLowerCase().includes(s)) ||
+        (p.code && p.code.toLowerCase().includes(s))
+    );
+  }
+
+  if (category) {
+    const c = category.toLowerCase();
+    filtered = filtered.filter(
+      (p) => p.category && p.category.toLowerCase() === c
+    );
+  }
+
+  res.json(filtered);
+});
+
+app.get('/api/products/:id', async (req, res) => {
+  const products = await readJson(PRODUCTS_FILE);
+  const id = Number(req.params.id);
+  const p = products.find((pr) => pr.id === id);
+  if (!p) return res.status(404).json({ error: 'Not found' });
+  res.json(p);
+});
+
+app.post('/api/products', async (req, res) => {
+  const products = await readJson(PRODUCTS_FILE);
+  const body = req.body || {};
+
+  const newId = products.length
+    ? Math.max(...products.map((p) => p.id || 0)) + 1
+    : 1;
+
+  const product = {
+    id: newId,
+    name: body.name || '',
+    code: body.code || '',
+    description: body.description || '',
+    category: body.category || '', // сюда можно ставить "аренда"
+    price: Number(body.price) || 0,
+    status: body.status || 'in_stock',
+    quantity: Number(body.quantity) || 0, // <-- количество
+    image: body.image || ''
+  };
+
+  products.push(product);
+  await writeJson(PRODUCTS_FILE, products);
+  res.json(product);
+});
+
+app.put('/api/products/:id', async (req, res) => {
+  const products = await readJson(PRODUCTS_FILE);
+  const id = Number(req.params.id);
+  const idx = products.findIndex((p) => p.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Not found' });
+
+  const body = req.body || {};
+  const prev = products[idx];
+
+  products[idx] = {
+    ...prev,
+    ...body,
+    price: Number(body.price ?? prev.price) || 0,
+    quantity: Number(body.quantity ?? prev.quantity) || 0
+  };
+
+  await writeJson(PRODUCTS_FILE, products);
+  res.json(products[idx]);
+});
+
+app.delete('/api/products/:id', async (req, res) => {
+  const products = await readJson(PRODUCTS_FILE);
+  const id = Number(req.params.id);
+  const filtered = products.filter((p) => p.id !== id);
+  await writeJson(PRODUCTS_FILE, filtered);
+  res.json({ success: true });
+});
+
+// ---------- ORDERS API ----------
+app.get('/api/orders', async (req, res) => {
+  const orders = await readJson(ORDERS_FILE);
+  orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // новые сверху
+  res.json(orders);
+});
+
+app.post('/api/orders', async (req, res) => {
+  const orders = await readJson(ORDERS_FILE);
+  const body = req.body || {};
+
+  const newId = orders.length
+    ? Math.max(...orders.map((o) => o.id || 0)) + 1
+    : 1;
+
+  const order = {
+    id: newId,
+    name: body.name || '',
+    phone: body.phone || '',
+    city: body.city || '',
+    comment: body.comment || '',
+    items: body.items || [],
+    totalPrice: Number(body.totalPrice) || 0,
+    createdAt: new Date().toISOString()
+  };
+
+  orders.push(order);
+  await writeJson(ORDERS_FILE, orders);
+  res.json(order);
+});
+
+// ---------- start ----------
 app.listen(PORT, () => {
-  console.log("Server running on port " + PORT);
+  console.log('Server listening on port ' + PORT);
 });
