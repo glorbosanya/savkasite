@@ -1,182 +1,110 @@
-const express = require('express');
-const path = require('path');
-const fs = require('fs').promises;
+import express from "express";
+import pg from "pg";
+import cors from "cors";
+import bodyParser from "body-parser";
+import multer from "multer";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+app.use(cors());
+app.use(bodyParser.json());
+app.use(express.static("public"));
 
-const DATA_DIR = path.join(__dirname, 'data');
-const PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
-const ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
+// ============ БАЗА ДАННЫХ ============
 
-// ---------- helpers ----------
-async function ensureDataFile(file) {
+const pool = new pg.Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
+
+pool.connect()
+  .then(() => console.log("Connected to PostgreSQL"))
+  .catch(err => console.error("DB ERROR:", err));
+
+
+// Создание таблицы при запуске
+pool.query(`
+  CREATE TABLE IF NOT EXISTS products (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    price INTEGER NOT NULL,
+    description TEXT,
+    category TEXT,
+    stock INTEGER DEFAULT 0,
+    image TEXT
+  );
+`).then(() => console.log("Table ready"))
+  .catch(err => console.error(err));
+
+
+// ============ Загрузка файлов ============
+const upload = multer({ dest: "public/uploads/" });
+
+// ============ API ============
+
+// Получить все товары
+app.get("/api/products", async (req, res) => {
+  const result = await pool.query("SELECT * FROM products ORDER BY id DESC");
+  res.json(result.rows);
+});
+
+// Получить товар по ID
+app.get("/api/products/:id", async (req, res) => {
+  const id = req.params.id;
+  const result = await pool.query("SELECT * FROM products WHERE id=$1", [id]);
+  res.json(result.rows[0]);
+});
+
+// Добавить товар
+app.post("/api/products", upload.single("image"), async (req, res) => {
+  const { name, price, description, category, stock } = req.body;
+  const image = req.file ? `/uploads/${req.file.filename}` : null;
+
   try {
-    await fs.access(file);
-  } catch {
-    await fs.mkdir(DATA_DIR, { recursive: true });
-    await fs.writeFile(file, '[]', 'utf8');
-  }
-}
-
-async function readJson(file) {
-  await ensureDataFile(file);
-  const txt = await fs.readFile(file, 'utf8');
-  return txt ? JSON.parse(txt) : [];
-}
-
-async function writeJson(file, data) {
-  await fs.writeFile(file, JSON.stringify(data, null, 2), 'utf8');
-}
-
-// ---------- middlewares ----------
-app.use(express.json({ limit: '10mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
-
-// ---------- pages ----------
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-app.get('/catalog', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'catalog.html'));
-});
-
-app.get('/product', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'product.html'));
-});
-
-app.get('/cart', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'cart.html'));
-});
-
-app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
-});
-
-app.get('/login', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'login.html'));
-});
-
-// ---------- PRODUCTS API ----------
-app.get('/api/products', async (req, res) => {
-  const products = await readJson(PRODUCTS_FILE);
-  let filtered = products;
-
-  const { search, category } = req.query;
-
-  if (search) {
-    const s = search.toLowerCase();
-    filtered = filtered.filter(
-      (p) =>
-        (p.name && p.name.toLowerCase().includes(s)) ||
-        (p.code && p.code.toLowerCase().includes(s))
+    const result = await pool.query(
+      "INSERT INTO products (name, price, description, category, stock, image) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *",
+      [name, price, description, category, stock, image]
     );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Ошибка добавления товара" });
   }
-
-  if (category) {
-    const c = category.toLowerCase();
-    filtered = filtered.filter(
-      (p) => p.category && p.category.toLowerCase() === c
-    );
-  }
-
-  res.json(filtered);
 });
 
-app.get('/api/products/:id', async (req, res) => {
-  const products = await readJson(PRODUCTS_FILE);
-  const id = Number(req.params.id);
-  const p = products.find((pr) => pr.id === id);
-  if (!p) return res.status(404).json({ error: 'Not found' });
-  res.json(p);
-});
-
-app.post('/api/products', async (req, res) => {
-  const products = await readJson(PRODUCTS_FILE);
-  const body = req.body || {};
-
-  const newId = products.length
-    ? Math.max(...products.map((p) => p.id || 0)) + 1
-    : 1;
-
-  const product = {
-    id: newId,
-    name: body.name || '',
-    code: body.code || '',
-    description: body.description || '',
-    category: body.category || '', // сюда можно ставить "аренда"
-    price: Number(body.price) || 0,
-    status: body.status || 'in_stock',
-    quantity: Number(body.quantity) || 0, // <-- количество
-    image: body.image || ''
-  };
-
-  products.push(product);
-  await writeJson(PRODUCTS_FILE, products);
-  res.json(product);
-});
-
-app.put('/api/products/:id', async (req, res) => {
-  const products = await readJson(PRODUCTS_FILE);
-  const id = Number(req.params.id);
-  const idx = products.findIndex((p) => p.id === id);
-  if (idx === -1) return res.status(404).json({ error: 'Not found' });
-
-  const body = req.body || {};
-  const prev = products[idx];
-
-  products[idx] = {
-    ...prev,
-    ...body,
-    price: Number(body.price ?? prev.price) || 0,
-    quantity: Number(body.quantity ?? prev.quantity) || 0
-  };
-
-  await writeJson(PRODUCTS_FILE, products);
-  res.json(products[idx]);
-});
-
-app.delete('/api/products/:id', async (req, res) => {
-  const products = await readJson(PRODUCTS_FILE);
-  const id = Number(req.params.id);
-  const filtered = products.filter((p) => p.id !== id);
-  await writeJson(PRODUCTS_FILE, filtered);
+// Удалить товар
+app.delete("/api/products/:id", async (req, res) => {
+  await pool.query("DELETE FROM products WHERE id=$1", [req.params.id]);
   res.json({ success: true });
 });
 
-// ---------- ORDERS API ----------
-app.get('/api/orders', async (req, res) => {
-  const orders = await readJson(ORDERS_FILE);
-  orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // новые сверху
-  res.json(orders);
+// Обновить товар
+app.put("/api/products/:id", async (req, res) => {
+  const { name, price, description, category, stock } = req.body;
+
+  const result = await pool.query(
+    `UPDATE products 
+     SET name=$1, price=$2, description=$3, category=$4, stock=$5 
+     WHERE id=$6 
+     RETURNING *`,
+    [name, price, description, category, stock, req.params.id]
+  );
+
+  res.json(result.rows[0]);
 });
 
-app.post('/api/orders', async (req, res) => {
-  const orders = await readJson(ORDERS_FILE);
-  const body = req.body || {};
 
-  const newId = orders.length
-    ? Math.max(...orders.map((o) => o.id || 0)) + 1
-    : 1;
+// ======= Важно: КЛИЕНТ (index.html и все остальные) =======
 
-  const order = {
-    id: newId,
-    name: body.name || '',
-    phone: body.phone || '',
-    city: body.city || '',
-    comment: body.comment || '',
-    items: body.items || [],
-    totalPrice: Number(body.totalPrice) || 0,
-    createdAt: new Date().toISOString()
-  };
-
-  orders.push(order);
-  await writeJson(ORDERS_FILE, orders);
-  res.json(order);
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/index.html"));
 });
 
-// ---------- start ----------
-app.listen(PORT, () => {
-  console.log('Server listening on port ' + PORT);
-});
+
+// ============ Запуск сервера ============
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
