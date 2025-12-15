@@ -1,9 +1,10 @@
-// server.js — backend c PostgreSQL и автосозданием таблиц
+// server.js — backend c PostgreSQL, автосозданием таблиц и защитой админки
 
 const express = require("express");
 const path = require("path");
 const fs = require("fs");
 const multer = require("multer");
+const session = require("express-session"); // <— добавили сессии
 const { Pool } = require("pg");
 
 const app = express();
@@ -75,6 +76,15 @@ async function initDb() {
 
 // ---------- Middleware ----------
 
+// сессии (для авторизации админа)
+app.use(
+  session({
+    secret: "savkasite_super_secret_228_1337", // можешь поменять на любой длинный набор символов
+    resave: false,
+    saveUninitialized: false,
+  })
+);
+
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
@@ -97,6 +107,15 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+// ---------- Middleware: защита админки ----------
+
+function requireLogin(req, res, next) {
+  if (req.session && req.session.loggedIn) {
+    return next();
+  }
+  return res.redirect("/login");
+}
+
 // ---------- Страницы ----------
 
 app.get("/", (req, res) => {
@@ -115,21 +134,41 @@ app.get("/cart", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "cart.html"));
 });
 
-app.get("/admin", (req, res) => {
+// админка защищена
+app.get("/admin", requireLogin, (req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
 
-app.get("/admin-orders", (req, res) => {
+// заказы — тоже под паролем
+app.get("/admin-orders", requireLogin, (req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin-orders.html"));
 });
 
+// страница логина (открыта для всех)
 app.get("/login", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
+// ---------- API логина ----------
+
+app.post("/api/login", (req, res) => {
+  const { login, password } = req.body || {};
+
+  // ТВОЙ ЛОГИН/ПАРОЛЬ:
+  const ADMIN_LOGIN = "admin";
+  const ADMIN_PASS = "AzSx378";
+
+  if (login === ADMIN_LOGIN && password === ADMIN_PASS) {
+    req.session.loggedIn = true;
+    return res.json({ success: true });
+  }
+
+  return res.json({ success: false });
+});
+
 // ---------- API: ТОВАРЫ ----------
 
-// список товаров с поиском
+// список товаров с поиском (доступен и для витрины, и для админки)
 app.get("/api/products", async (req, res) => {
   try {
     const { search, category } = req.query;
@@ -191,7 +230,7 @@ app.get("/api/products/:id", async (req, res) => {
   }
 });
 
-// добавить товар
+// добавить товар (через админку)
 app.post("/api/products", upload.single("image"), async (req, res) => {
   try {
     const {
@@ -301,7 +340,7 @@ app.delete("/api/products/:id", async (req, res) => {
 
 // ---------- API: ЗАКАЗЫ ----------
 
-// получить все заказы
+// получить все заказы (используется /admin-orders)
 app.get("/api/orders", async (req, res) => {
   try {
     const ordersRes = await pool.query(`
@@ -347,7 +386,7 @@ app.get("/api/orders", async (req, res) => {
   }
 });
 
-// создать заказ (используется корзиной)
+// создать заказ (используется корзиной на сайте)
 app.post("/api/orders", async (req, res) => {
   const client = await pool.connect();
   try {
