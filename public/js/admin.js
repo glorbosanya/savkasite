@@ -1,26 +1,17 @@
+// ---- Вспомогательное: читаем файл в base64 -----------------------------
+function fileToDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 // ---- API helpers -------------------------------------------------------
 async function apiGetProducts() {
   const res = await fetch('/api/products');
   return await res.json();
-}
-
-async function apiUploadImage(file) {
-  if (!file) return null;
-
-  const formData = new FormData();
-  formData.append('file', file);
-
-  const res = await fetch('/api/upload', {
-    method: 'POST',
-    body: formData
-  });
-
-  if (!res.ok) {
-    alert('Ошибка загрузки изображения');
-    return null;
-  }
-  const data = await res.json();
-  return data.dataUrl; // это строка data:image/...;base64,...
 }
 
 async function apiCreateProduct(payload) {
@@ -63,8 +54,9 @@ let allProducts = [];
 function imgSrcFromProduct(p) {
   if (!p.image) return 'img/scooter2.png';
   if (typeof p.image === 'string' && p.image.startsWith('data:')) {
-    return p.image;
+    return p.image; // dataURL
   }
+  // старый вариант, если вдруг что-то осталось в базе
   return '/uploads/' + p.image;
 }
 
@@ -126,8 +118,13 @@ document.getElementById('add-btn').addEventListener('click', async () => {
 
   let imageData = null;
   if (imageFile) {
-    imageData = await apiUploadImage(imageFile);
-    if (!imageData) return;
+    try {
+      imageData = await fileToDataURL(imageFile);
+    } catch (e) {
+      console.error(e);
+      alert('Не удалось прочитать файл изображения');
+      return;
+    }
   }
 
   const payload = { name, code, description, price, category, status, image: imageData };
@@ -207,9 +204,13 @@ document.getElementById('save-edit-btn').addEventListener('click', async () => {
 
   const newFile = document.getElementById('edit-image').files[0];
   if (newFile) {
-    const uploaded = await apiUploadImage(newFile);
-    if (!uploaded) return;
-    imageData = uploaded;
+    try {
+      imageData = await fileToDataURL(newFile);
+    } catch (e) {
+      console.error(e);
+      alert('Не удалось прочитать файл изображения');
+      return;
+    }
   }
 
   const payload = { name, code, description, price, category, status, image: imageData };
