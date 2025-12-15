@@ -3,30 +3,29 @@ const session = require("express-session");
 const multer = require("multer");
 const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
-const fs = require("fs");
 
 const app = express();
 
-// === Настройки ===
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true }));
+// --- Парсинг тела ----------------------------------------------------------
+app.use(express.json({ limit: "15mb" }));
+app.use(express.urlencoded({ extended: true, limit: "15mb" }));
 
-// Static для public
-app.use(express.static(path.join(__dirname, "public")));
+// --- Статика ---------------------------------------------------------------
+const publicDir = path.join(__dirname, "public");
+app.use(express.static(publicDir));
 
-// === Сессии (работают на Render) ===
+// --- Сессии ----------------------------------------------------------------
 app.use(
   session({
-    secret: "supersecretkey",
+    secret: "supersecretkey_esco",
     resave: false,
     saveUninitialized: false,
   })
 );
 
-// === База данных ===
+// --- База данных -----------------------------------------------------------
 const db = new sqlite3.Database("db.sqlite");
 
-// Создаём таблицу, если нет
 db.run(
   `CREATE TABLE IF NOT EXISTS products (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -36,46 +35,25 @@ db.run(
     price INTEGER,
     category TEXT,
     status TEXT,
-    image TEXT
+    image TEXT   -- сюда пишем data:image/...;base64,....
   )`
 );
 
-// === Хранилище загрузок (Render FREE поддерживает только /tmp) ===
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "/tmp"); // Пишем в /tmp вместо uploads/
-  },
-  filename: function (req, file, cb) {
-    const unique = Date.now() + "-" + Math.round(Math.random() * 999999);
-    const ext = path.extname(file.originalname);
-    cb(null, unique + ext);
-  },
-});
-
+// --- Multer: файл только в памяти, потом в base64 -------------------------
+const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// === Отдача файлов из /tmp ===
-app.get("/uploads/:filename", (req, res) => {
-  const filePath = "/tmp/" + req.params.filename;
-
-  if (fs.existsSync(filePath)) {
-    return res.sendFile(filePath);
-  } else {
-    return res.status(404).send("File not found.");
-  }
-});
-
-// === API: Авторизация ===
+// --- Авторизация -----------------------------------------------------------
 app.post("/api/login", (req, res) => {
   const { login, password } = req.body;
 
-  // ХАРДКОД – поменяй на свои данные
+  // Поменяй на свои
   if (login === "admin" && password === "1234") {
     req.session.auth = true;
     return res.json({ ok: true });
   }
 
-  res.status(401).json({ error: "Invalid credentials" });
+  return res.status(401).json({ error: "invalid_credentials" });
 });
 
 app.post("/api/logout", (req, res) => {
@@ -83,44 +61,57 @@ app.post("/api/logout", (req, res) => {
   res.json({ ok: true });
 });
 
-// Middleware проверки админа
-function auth(req, res, next) {
-  if (req.session.auth) return next();
-  res.status(403).json({ error: "Not authorized" });
+function requireAuth(req, res, next) {
+  if (req.session && req.session.auth) return next();
+  return res.status(403).json({ error: "not_authorized" });
 }
 
-// === API: Загрузка фото ===
-app.post("/api/upload", auth, upload.single("file"), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: "No file" });
+// --- Загрузка изображения: отдаём dataURL ---------------------------------
+app.post("/api/upload", requireAuth, upload.single("file"), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "no_file" });
 
-  res.json({
-    filename: req.file.filename, // лежит в /tmp
-  });
+  const mime = req.file.mimetype || "image/jpeg";
+  const base64 = req.file.buffer.toString("base64");
+  const dataUrl = `data:${mime};base64,${base64}`;
+
+  res.json({ dataUrl });
 });
 
-// === API: CRUD товаров ===
+// --- API товаров -----------------------------------------------------------
 
-// Получить все товары
+// список (с фильтрами search/category)
 app.get("/api/products", (req, res) => {
-  db.all("SELECT * FROM products", [], (err, rows) => {
-    if (err) return res.status(500).json({ error: err });
+  const { search, category } = req.query;
+  let sql = "SELECT * FROM products WHERE 1=1";
+  const params = [];
+
+  if (search) {
+    sql += " AND (name LIKE ? OR code LIKE ?)";
+    params.push("%" + search + "%", "%" + search + "%");
+  }
+  if (category) {
+    sql += " AND category = ?";
+    params.push(category);
+  }
+
+  db.all(sql, params, (err, rows) => {
+    if (err) return res.status(500).json({ error: "db_error" });
     res.json(rows);
   });
 });
 
-// Получить товар по id
+// один товар
 app.get("/api/products/:id", (req, res) => {
   db.get("SELECT * FROM products WHERE id = ?", [req.params.id], (err, row) => {
-    if (err) return res.status(500).json({ error: err });
-    if (!row) return res.status(404).json({ error: "Not found" });
+    if (err) return res.status(500).json({ error: "db_error" });
+    if (!row) return res.status(404).json({ error: "not_found" });
     res.json(row);
   });
 });
 
-// Создать товар
-app.post("/api/products", auth, (req, res) => {
+// создать
+app.post("/api/products", requireAuth, (req, res) => {
   const p = req.body;
-
   db.run(
     `INSERT INTO products (name, code, description, price, category, status, image)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -134,20 +125,20 @@ app.post("/api/products", auth, (req, res) => {
       p.image || null,
     ],
     function (err) {
-      if (err) return res.status(500).json({ error: err });
+      if (err) return res.status(500).json({ error: "db_error" });
       res.json({ id: this.lastID });
     }
   );
 });
 
-// Обновить товар
-app.put("/api/products/:id", auth, (req, res) => {
+// обновить
+app.put("/api/products/:id", requireAuth, (req, res) => {
   const p = req.body;
-
   db.run(
     `UPDATE products SET
-      name=?, code=?, description=?, price=?, category=?, status=?, image=?
-     WHERE id=?`,
+      name = ?, code = ?, description = ?, price = ?,
+      category = ?, status = ?, image = ?
+     WHERE id = ?`,
     [
       p.name,
       p.code,
@@ -155,29 +146,50 @@ app.put("/api/products/:id", auth, (req, res) => {
       p.price,
       p.category,
       p.status,
-      p.image,
+      p.image || null,
       req.params.id,
     ],
     function (err) {
-      if (err) return res.status(500).json({ error: err });
-      res.json({ ok: true });
+      if (err) return res.status(500).json({ error: "db_error" });
+      res.json({ ok: true, changed: this.changes });
     }
   );
 });
 
-// Удалить товар
-app.delete("/api/products/:id", auth, (req, res) => {
+// удалить
+app.delete("/api/products/:id", requireAuth, (req, res) => {
   db.run(
-    `DELETE FROM products WHERE id=?`,
+    "DELETE FROM products WHERE id = ?",
     [req.params.id],
     function (err) {
-      if (err) return res.status(500).json({ error: err });
-      res.json({ ok: true });
+      if (err) return res.status(500).json({ error: "db_error" });
+      res.json({ ok: true, deleted: this.changes });
     }
   );
 });
 
-// === Порты для Render ===
+// --- Красивые URL для страниц ---------------------------------------------
+app.get("/", (_req, res) => {
+  res.sendFile(path.join(publicDir, "index.html"));
+});
+
+app.get("/catalog", (_req, res) => {
+  res.sendFile(path.join(publicDir, "catalog.html"));
+});
+
+app.get("/product", (_req, res) => {
+  res.sendFile(path.join(publicDir, "product.html"));
+});
+
+app.get("/login", (_req, res) => {
+  res.sendFile(path.join(publicDir, "login.html"));
+});
+
+app.get("/admin", (_req, res) => {
+  res.sendFile(path.join(publicDir, "admin.html"));
+});
+
+// --- Старт сервера ---------------------------------------------------------
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("Server running on port " + PORT);

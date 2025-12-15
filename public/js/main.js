@@ -8,7 +8,6 @@ if (burger && nav) {
   });
 }
 
-// Хедер при скролле
 const header = document.querySelector('.eks-header');
 window.addEventListener('scroll', () => {
   if (!header) return;
@@ -16,16 +15,31 @@ window.addEventListener('scroll', () => {
   else header.classList.remove('scrolled');
 });
 
-// Параллакс самоката
+// === Самокат + бернаут =====================================================
 const scrollScooter = document.getElementById('scroll-scooter');
-if (scrollScooter) {
+const scooterWrapper = document.querySelector('.hero-scooter-wrapper');
+
+if (scrollScooter && scooterWrapper) {
+  // параллакс до тех пор, пока не активен бернаут
   window.addEventListener('scroll', () => {
+    if (scrollScooter.classList.contains('burnout-active')) return;
     const offset = window.scrollY * 0.15;
     scrollScooter.style.transform = `translateY(${offset}px) rotate(${offset / 40}deg)`;
   });
+
+  // включаем бернаут по наведению
+  scooterWrapper.addEventListener('mouseenter', () => {
+    scrollScooter.classList.add('burnout-active');
+  });
+
+  // выключаем по уходу курсора
+  scooterWrapper.addEventListener('mouseleave', () => {
+    scrollScooter.classList.remove('burnout-active');
+    scrollScooter.style.transform = '';
+  });
 }
 
-// IntersectionObserver для плавного появления карточек
+// === IntersectionObserver для карточек =====================================
 const observer = new IntersectionObserver(
   entries => {
     entries.forEach(entry => {
@@ -37,6 +51,15 @@ const observer = new IntersectionObserver(
   },
   { threshold: 0.2 }
 );
+
+// Вспомогательная — определяем src картинки товара
+function imgSrcFromProduct(p, fallback = 'img/scooter2.png') {
+  if (!p.image) return fallback;
+  if (typeof p.image === 'string' && p.image.startsWith('data:')) {
+    return p.image; // храним dataURL
+  }
+  return '/uploads/' + p.image; // старый вариант
+}
 
 // --- Каталог ---------------------------------------------------------------
 async function loadCatalogProducts() {
@@ -62,11 +85,11 @@ async function loadCatalogProducts() {
     products.forEach(p => {
       const card = document.createElement('a');
       card.className = 'product-card';
-      card.href = `product.html?id=${p.id}`;
+      card.href = `/product?id=${p.id}`;
 
       const statusClass = p.status === 'in_stock' ? 'badge-in' : 'badge-await';
       const statusText = p.status === 'in_stock' ? 'В наличии' : 'Ожидается';
-      const imgPath = p.image ? `/uploads/${p.image}` : 'img/scooter2.png';
+      const imgPath = imgSrcFromProduct(p, 'img/scooter2.png');
 
       card.innerHTML = `
         <div class="product-thumb">
@@ -102,11 +125,11 @@ async function loadPopularProducts() {
   products.forEach(p => {
     const card = document.createElement('a');
     card.className = 'product-card';
-    card.href = `product.html?id=${p.id}`;
+    card.href = `/product?id=${p.id}`;
 
     const statusClass = p.status === 'in_stock' ? 'badge-in' : 'badge-await';
     const statusText = p.status === 'in_stock' ? 'В наличии' : 'Ожидается';
-    const imgPath = p.image ? `/uploads/${p.image}` : 'img/scooter3.png';
+    const imgPath = imgSrcFromProduct(p, 'img/scooter3.png');
 
     card.innerHTML = `
       <div class="product-thumb">
@@ -144,7 +167,7 @@ async function loadProductDetail() {
   const p = await res.json();
   const statusClass = p.status === 'in_stock' ? 'badge-in' : 'badge-await';
   const statusText = p.status === 'in_stock' ? 'В наличии' : 'Ожидается';
-  const imgPath = p.image ? `/uploads/${p.image}` : 'img/scooter2.png';
+  const imgPath = imgSrcFromProduct(p, 'img/scooter2.png');
 
   detailEl.innerHTML = `
     <div class="product-detail-grid">
@@ -163,7 +186,7 @@ async function loadProductDetail() {
           Для заказа запчасти или уточнения наличия позвони
           <a href="tel:+79998887766">+7 (999) 888-77-66</a>.
         </p>
-        <a href="catalog.html" class="btn btn-ghost">← Вернуться в каталог</a>
+        <a href="/catalog" class="btn btn-ghost">← Вернуться в каталог</a>
       </div>
     </div>
   `;

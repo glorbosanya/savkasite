@@ -1,3 +1,4 @@
+// ---- API helpers -------------------------------------------------------
 async function apiGetProducts() {
   const res = await fetch('/api/products');
   return await res.json();
@@ -5,6 +6,7 @@ async function apiGetProducts() {
 
 async function apiUploadImage(file) {
   if (!file) return null;
+
   const formData = new FormData();
   formData.append('file', file);
 
@@ -12,12 +14,13 @@ async function apiUploadImage(file) {
     method: 'POST',
     body: formData
   });
+
   if (!res.ok) {
     alert('Ошибка загрузки изображения');
     return null;
   }
   const data = await res.json();
-  return data.filename;
+  return data.dataUrl; // это строка data:image/...;base64,...
 }
 
 async function apiCreateProduct(payload) {
@@ -47,24 +50,29 @@ async function apiUpdateProduct(id, payload) {
 }
 
 async function apiDeleteProduct(id) {
-  const res = await fetch('/api/products/' + id, {
-    method: 'DELETE'
-  });
+  const res = await fetch('/api/products/' + id, { method: 'DELETE' });
   if (!res.ok) {
-    alert('Ошибка удаления');
+    alert('Ошибка удаления товара');
     return null;
   }
   return await res.json();
 }
 
-// --- Рендер списка ---------------------------------------------------------
 let allProducts = [];
 
-function renderProductList(filterText = '') {
+function imgSrcFromProduct(p) {
+  if (!p.image) return 'img/scooter2.png';
+  if (typeof p.image === 'string' && p.image.startsWith('data:')) {
+    return p.image;
+  }
+  return '/uploads/' + p.image;
+}
+
+function renderProductList(filter = '') {
   const listEl = document.getElementById('admin-product-list');
   listEl.innerHTML = '';
 
-  const norm = filterText.trim().toLowerCase();
+  const norm = filter.trim().toLowerCase();
   const products = allProducts.filter(p => {
     if (!norm) return true;
     return (
@@ -96,18 +104,17 @@ function renderProductList(filterText = '') {
         <button class="btn-small btn-red" data-id="${p.id}" data-action="delete">Удалить</button>
       </div>
     `;
-
     listEl.appendChild(row);
   });
 }
 
-// --- Загрузка списка -------------------------------------------------------
 async function reloadProducts() {
   allProducts = await apiGetProducts();
-  renderProductList(document.getElementById('admin-search').value);
+  const search = document.getElementById('admin-search');
+  renderProductList(search ? search.value : '');
 }
 
-// --- Добавление товара -----------------------------------------------------
+// ---- Добавление товара --------------------------------------------------
 document.getElementById('add-btn').addEventListener('click', async () => {
   const name = document.getElementById('add-name').value.trim();
   const code = document.getElementById('add-code').value.trim();
@@ -117,17 +124,16 @@ document.getElementById('add-btn').addEventListener('click', async () => {
   const status = document.getElementById('add-status').value;
   const imageFile = document.getElementById('add-image').files[0];
 
-  let imageName = null;
+  let imageData = null;
   if (imageFile) {
-    imageName = await apiUploadImage(imageFile);
-    if (!imageName) return;
+    imageData = await apiUploadImage(imageFile);
+    if (!imageData) return;
   }
 
-  const payload = { name, code, description, price, category, status, image: imageName };
+  const payload = { name, code, description, price, category, status, image: imageData };
   const created = await apiCreateProduct(payload);
   if (created) {
     alert('Товар добавлен');
-    // очистить форму
     document.getElementById('add-name').value = '';
     document.getElementById('add-code').value = '';
     document.getElementById('add-desc').value = '';
@@ -137,13 +143,12 @@ document.getElementById('add-btn').addEventListener('click', async () => {
   }
 });
 
-// --- Обработчик списка (edit/delete) ---------------------------------------
+// ---- Обработчик списка (редактирование / удаление) ----------------------
 document.getElementById('admin-product-list').addEventListener('click', async (e) => {
   const btn = e.target.closest('button[data-action]');
   if (!btn) return;
   const id = btn.dataset.id;
   const action = btn.dataset.action;
-
   const product = allProducts.find(p => String(p.id) === String(id));
   if (!product) return;
 
@@ -158,7 +163,7 @@ document.getElementById('admin-product-list').addEventListener('click', async (e
   }
 });
 
-// --- Форма редактирования ---------------------------------------------------
+// ---- Форма редактирования -----------------------------------------------
 function openEditForm(product) {
   const panel = document.getElementById('edit-panel');
   panel.style.display = 'block';
@@ -172,8 +177,9 @@ function openEditForm(product) {
   document.getElementById('edit-status').value = product.status || 'in_stock';
 
   const preview = document.getElementById('edit-preview');
-  if (product.image) {
-    preview.src = '/uploads/' + product.image;
+  const src = imgSrcFromProduct(product);
+  if (src) {
+    preview.src = src;
     preview.style.display = 'block';
   } else {
     preview.style.display = 'none';
@@ -197,16 +203,16 @@ document.getElementById('save-edit-btn').addEventListener('click', async () => {
   const status = document.getElementById('edit-status').value;
 
   let product = allProducts.find(p => String(p.id) === String(id));
-  let imageName = product ? product.image : null;
+  let imageData = product ? product.image : null;
 
   const newFile = document.getElementById('edit-image').files[0];
   if (newFile) {
     const uploaded = await apiUploadImage(newFile);
     if (!uploaded) return;
-    imageName = uploaded;
+    imageData = uploaded;
   }
 
-  const payload = { name, code, description, price, category, status, image: imageName };
+  const payload = { name, code, description, price, category, status, image: imageData };
   const res = await apiUpdateProduct(id, payload);
   if (res) {
     alert('Сохранено');
@@ -215,16 +221,16 @@ document.getElementById('save-edit-btn').addEventListener('click', async () => {
   }
 });
 
-// --- Фильтр в админке -------------------------------------------------------
+// ---- Фильтр --------------------------------------------------------------
 document.getElementById('admin-search').addEventListener('input', (e) => {
   renderProductList(e.target.value);
 });
 
-// --- Logout -----------------------------------------------------------------
+// ---- Logout --------------------------------------------------------------
 document.getElementById('logout-btn').addEventListener('click', async () => {
   await fetch('/api/logout', { method: 'POST' });
-  window.location.href = '/login.html';
+  window.location.href = '/login';
 });
 
-// --- Init -------------------------------------------------------------------
+// ---- Init ----------------------------------------------------------------
 reloadProducts();
