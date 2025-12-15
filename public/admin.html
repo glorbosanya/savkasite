@@ -2,85 +2,449 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>Админка — Электросамокаты</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Админка — Электросамокаты Красноярск</title>
   <link rel="stylesheet" href="/css/style.css" />
 </head>
 <body>
+
 <header class="eks-header">
   <div class="eks-container">
-    <div class="eks-logo">Админ-панель</div>
-    <button class="btn btn-ghost" id="logout-btn">Выйти</button>
+    <div class="eks-logo">ЭЛЕКТРОСАМОКАТЫ<br>КРАСНОЯРСК</div>
+    <nav class="eks-nav" id="eks-nav">
+      <a href="/">Главная</a>
+      <a href="/catalog">Каталог</a>
+      <a href="/cart">Корзина</a>
+      <a href="/admin">Админка</a>
+    </nav>
+    <button class="eks-burger" id="eks-burger">
+      <span></span><span></span><span></span>
+    </button>
   </div>
 </header>
 
 <main class="eks-container admin-container">
-  <section class="admin-panel">
-    <h1>Добавить товар</h1>
-    <div class="admin-grid">
-      <input id="add-name" placeholder="Название товара" />
-      <input id="add-code" placeholder="Код товара" />
-      <textarea id="add-desc" placeholder="Описание"></textarea>
-      <input id="add-price" type="number" placeholder="Цена, ₽" />
-      <select id="add-category">
-        <option value="аксессуары">Аксессуары</option>
-        <option value="электрика">Электрика</option>
-        <option value="контроллеры">Контроллеры</option>
-        <option value="свет">Свет</option>
-        <option value="экипировка">Экипировка</option>
-      </select>
-      <select id="add-status">
-        <option value="in_stock">В наличии</option>
-        <option value="expected">Ожидается</option>
-      </select>
-      <div class="file-field">
-        <label>Фото товара:</label>
-        <input type="file" id="add-image" />
+  <h1>Админ-панель</h1>
+
+  <!-- Табы -->
+  <div style="margin-bottom:16px; display:flex; gap:8px; flex-wrap:wrap;">
+    <button id="tab-products" class="btn btn-ghost">Товары</button>
+    <button id="tab-orders" class="btn btn-ghost">Заказы</button>
+  </div>
+
+  <!-- ====== БЛОК ТОВАРОВ ====== -->
+  <section id="admin-products-section">
+    <div class="admin-panel">
+      <h2>Добавить товар</h2>
+      <div class="admin-grid">
+        <div>
+          <label>Название</label>
+          <input id="add-name" />
+        </div>
+        <div>
+          <label>Код</label>
+          <input id="add-code" />
+        </div>
+        <div>
+          <label>Категория</label>
+          <select id="add-category">
+            <option value="аксессуары">Аксессуары</option>
+            <option value="электрика">Электрика</option>
+            <option value="контроллеры">Контроллеры</option>
+            <option value="свет">Свет</option>
+            <option value="экипировка">Экипировка</option>
+            <option value="аренда">Аренда самокатов</option>
+          </select>
+        </div>
+        <div>
+          <label>Цена (₽)</label>
+          <input type="number" id="add-price" min="0" value="0" />
+        </div>
+        <div>
+          <label>Статус</label>
+          <select id="add-status">
+            <option value="in_stock">В наличии</option>
+            <option value="awaiting">Ожидается</option>
+          </select>
+        </div>
+        <div>
+          <label>Кол-во в наличии</label>
+          <input type="number" id="add-quantity" min="0" value="0" />
+        </div>
+        <div class="file-field">
+          <label>Фото товара</label>
+          <input type="file" id="add-image" accept="image/*" />
+        </div>
+        <div style="grid-column:1/-1;">
+          <label>Описание</label>
+          <textarea id="add-description"></textarea>
+        </div>
+      </div>
+      <button id="add-product-btn" class="btn">Добавить</button>
+    </div>
+
+    <div class="admin-panel">
+      <div class="admin-list-head">
+        <h2 style="margin:0;">Товары</h2>
+        <input id="admin-search" placeholder="Фильтр по названию / коду..." />
+      </div>
+      <div id="admin-products-list"></div>
+    </div>
+
+    <!-- Редактирование -->
+    <div class="admin-panel" id="edit-panel" style="display:none;">
+      <h2>Редактирование товара</h2>
+      <input type="hidden" id="edit-id" />
+      <div class="admin-grid">
+        <div>
+          <label>Название</label>
+          <input id="edit-name" />
+        </div>
+        <div>
+          <label>Код</label>
+          <input id="edit-code" />
+        </div>
+        <div>
+          <label>Категория</label>
+          <select id="edit-category">
+            <option value="аксессуары">Аксессуары</option>
+            <option value="электрика">Электрика</option>
+            <option value="контроллеры">Контроллеры</option>
+            <option value="свет">Свет</option>
+            <option value="экипировка">Экипировка</option>
+            <option value="аренда">Аренда самокатов</option>
+          </select>
+        </div>
+        <div>
+          <label>Цена (₽)</label>
+          <input type="number" id="edit-price" min="0" value="0" />
+        </div>
+        <div>
+          <label>Статус</label>
+          <select id="edit-status">
+            <option value="in_stock">В наличии</option>
+            <option value="awaiting">Ожидается</option>
+          </select>
+        </div>
+        <div>
+          <label>Кол-во в наличии</label>
+          <input type="number" id="edit-quantity" min="0" value="0" />
+        </div>
+        <div class="file-field">
+          <label>Новое фото (если нужно заменить)</label>
+          <input type="file" id="edit-image" accept="image/*" />
+          <img id="edit-preview" class="edit-preview" src="" alt="" />
+        </div>
+        <div style="grid-column:1/-1;">
+          <label>Описание</label>
+          <textarea id="edit-description"></textarea>
+        </div>
+      </div>
+      <div class="edit-actions">
+        <button id="save-edit-btn" class="btn">Сохранить изменения</button>
+        <button id="cancel-edit-btn" class="btn-ghost">Отмена</button>
       </div>
     </div>
-    <button class="btn" id="add-btn">Добавить</button>
   </section>
 
-  <section class="admin-panel">
-    <div class="admin-list-head">
-      <h2>Товары</h2>
-      <input id="admin-search" placeholder="Фильтр по названию / коду..." />
-    </div>
-    <div id="admin-product-list"></div>
-  </section>
-
-  <section class="admin-panel" id="edit-panel" style="display:none;">
-    <h2>Редактирование товара</h2>
-    <div class="admin-grid">
-      <input id="edit-id" type="hidden" />
-      <input id="edit-name" placeholder="Название товара" />
-      <input id="edit-code" placeholder="Код товара" />
-      <textarea id="edit-desc" placeholder="Описание"></textarea>
-      <input id="edit-price" type="number" placeholder="Цена, ₽" />
-      <select id="edit-category">
-        <option value="аксессуары">Аксессуары</option>
-        <option value="электрика">Электрика</option>
-        <option value="контроллеры">Контроллеры</option>
-        <option value="свет">Свет</option>
-        <option value="экипировка">Экипировка</option>
-      </select>
-      <select id="edit-status">
-        <option value="in_stock">В наличии</option>
-        <option value="expected">Ожидается</option>
-      </select>
-      <div class="file-field">
-        <label>Текущее фото:</label>
-        <img id="edit-preview" src="" alt="Фото" class="edit-preview" />
-        <label>Заменить фото:</label>
-        <input type="file" id="edit-image" />
-      </div>
-    </div>
-    <div class="edit-actions">
-      <button class="btn" id="save-edit-btn">Сохранить изменения</button>
-      <button class="btn btn-ghost" id="cancel-edit-btn">Отмена</button>
+  <!-- ====== БЛОК ЗАКАЗОВ ====== -->
+  <section id="admin-orders-section" style="display:none;">
+    <div class="admin-panel">
+      <h2>Заказы</h2>
+      <div id="orders-list"></div>
     </div>
   </section>
 </main>
 
-<script src="/js/admin.js"></script>
+<footer class="eks-footer">
+  <div class="eks-container eks-footer-grid">
+    <div>
+      <div class="eks-logo footer">Электросамокаты Красноярск</div>
+      <p class="eks-muted">Ремонт, аренда и запчасти для электросамокатов.</p>
+    </div>
+    <div>
+      <h4>Навигация</h4>
+      <ul>
+        <li><a href="/">Главная</a></li>
+        <li><a href="/catalog">Каталог</a></li>
+        <li><a href="/cart">Корзина</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Контакты</h4>
+      <p>Тел: <a href="tel:+79832800982">8 (983) 280-09-82</a></p>
+      <p>Адрес: Красноярск, пр-т Красноярский Рабочий, 160/4</p>
+      <p>Email: <a href="mailto:avdddenis@gmail.com">avdddenis@gmail.com</a></p>
+    </div>
+  </div>
+  <div class="eks-footer-bottom">© 2025 Электросамокаты Красноярск</div>
+</footer>
+
+<script>
+// бургер
+const burgerBtn = document.getElementById('eks-burger');
+const navEl = document.getElementById('eks-nav');
+if (burgerBtn && navEl) {
+  burgerBtn.addEventListener('click', () => navEl.classList.toggle('open'));
+}
+
+// табы
+const tabProducts = document.getElementById('tab-products');
+const tabOrders = document.getElementById('tab-orders');
+const productsSection = document.getElementById('admin-products-section');
+const ordersSection = document.getElementById('admin-orders-section');
+
+function activateTab(tab) {
+  if (tab === 'products') {
+    productsSection.style.display = 'block';
+    ordersSection.style.display = 'none';
+  } else {
+    productsSection.style.display = 'none';
+    ordersSection.style.display = 'block';
+  }
+}
+
+tabProducts.addEventListener('click', () => activateTab('products'));
+tabOrders.addEventListener('click', () => {
+  activateTab('orders');
+  loadOrders();
+});
+activateTab('products');
+
+// ====== РАБОТА С ТОВАРАМИ ======
+const addName = document.getElementById('add-name');
+const addCode = document.getElementById('add-code');
+const addCategory = document.getElementById('add-category');
+const addPrice = document.getElementById('add-price');
+const addStatus = document.getElementById('add-status');
+const addQuantity = document.getElementById('add-quantity');
+const addImage = document.getElementById('add-image');
+const addDescription = document.getElementById('add-description');
+const addBtn = document.getElementById('add-product-btn');
+
+const adminList = document.getElementById('admin-products-list');
+const adminSearch = document.getElementById('admin-search');
+
+const editPanel = document.getElementById('edit-panel');
+const editId = document.getElementById('edit-id');
+const editName = document.getElementById('edit-name');
+const editCode = document.getElementById('edit-code');
+const editCategory = document.getElementById('edit-category');
+const editPrice = document.getElementById('edit-price');
+const editStatus = document.getElementById('edit-status');
+const editQuantity = document.getElementById('edit-quantity');
+const editImage = document.getElementById('edit-image');
+const editDescription = document.getElementById('edit-description');
+const editPreview = document.getElementById('edit-preview');
+const saveEditBtn = document.getElementById('save-edit-btn');
+const cancelEditBtn = document.getElementById('cancel-edit-btn');
+
+let allProducts = [];
+let editOldImage = '';
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    if (!file) return resolve('');
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function loadProducts() {
+  const res = await fetch('/api/products');
+  allProducts = await res.json();
+  renderProducts();
+}
+
+function renderProducts() {
+  const q = (adminSearch.value || '').toLowerCase();
+  adminList.innerHTML = '';
+
+  const filtered = allProducts.filter(p => {
+    if (!q) return true;
+    const name = (p.name || '').toLowerCase();
+    const code = (p.code || '').toLowerCase();
+    return name.includes(q) || code.includes(q);
+  });
+
+  if (!filtered.length) {
+    adminList.innerHTML = '<p class="eks-muted">Товаров нет.</p>';
+    return;
+  }
+
+  filtered.forEach(p => {
+    const row = document.createElement('div');
+    row.className = 'product-row';
+    row.innerHTML = `
+      <div class="row-main">
+        <strong>${p.name}</strong> <span class="eks-muted small">[${p.code || '-'}]</span><br>
+        <span class="eks-muted small">Категория: ${p.category || '-'}</span><br>
+        <span class="eks-muted small">Статус: ${p.status === 'in_stock' ? 'В наличии' : 'Ожидается'}</span><br>
+        <span class="eks-muted small">Кол-во: ${p.quantity ?? 0} шт.</span>
+      </div>
+      <div class="row-buttons">
+        <button class="btn-small" data-id="${p.id}" data-action="edit">Редактировать</button>
+        <button class="btn-small btn-red" data-id="${p.id}" data-action="delete">Удалить</button>
+      </div>
+    `;
+    adminList.appendChild(row);
+  });
+}
+
+adminSearch.addEventListener('input', renderProducts);
+
+addBtn.addEventListener('click', async () => {
+  const name = addName.value.trim();
+  if (!name) {
+    alert('Укажи название товара');
+    return;
+  }
+
+  const imageDataUrl = await fileToDataUrl(addImage.files[0]);
+
+  const body = {
+    name,
+    code: addCode.value.trim(),
+    category: addCategory.value,
+    price: Number(addPrice.value) || 0,
+    status: addStatus.value,
+    quantity: Number(addQuantity.value) || 0,
+    description: addDescription.value.trim(),
+    image: imageDataUrl
+  };
+
+  const res = await fetch('/api/products', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+
+  if (!res.ok) {
+    alert('Ошибка при добавлении товара');
+    return;
+  }
+
+  addName.value = '';
+  addCode.value = '';
+  addPrice.value = '0';
+  addQuantity.value = '0';
+  addDescription.value = '';
+  addImage.value = '';
+
+  await loadProducts();
+});
+
+// клик по редактированию / удалению
+adminList.addEventListener('click', async (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  const id = Number(btn.dataset.id);
+  const action = btn.dataset.action;
+  const product = allProducts.find(p => p.id === id);
+  if (!product) return;
+
+  if (action === 'delete') {
+    if (!confirm('Удалить товар?')) return;
+    const res = await fetch('/api/products/' + id, { method: 'DELETE' });
+    if (!res.ok) {
+      alert('Не удалось удалить товар');
+      return;
+    }
+    await loadProducts();
+  }
+
+  if (action === 'edit') {
+    editPanel.style.display = 'block';
+    editId.value = product.id;
+    editName.value = product.name || '';
+    editCode.value = product.code || '';
+    editCategory.value = product.category || 'аксессуары';
+    editPrice.value = product.price ?? 0;
+    editStatus.value = product.status || 'in_stock';
+    editQuantity.value = product.quantity ?? 0;
+    editDescription.value = product.description || '';
+    editOldImage = product.image || '';
+    editPreview.src = editOldImage || '';
+  }
+});
+
+cancelEditBtn.addEventListener('click', () => {
+  editPanel.style.display = 'none';
+});
+
+saveEditBtn.addEventListener('click', async () => {
+  const id = Number(editId.value);
+  if (!id) return;
+  const newImage = await fileToDataUrl(editImage.files[0]);
+
+  const body = {
+    name: editName.value.trim(),
+    code: editCode.value.trim(),
+    category: editCategory.value,
+    price: Number(editPrice.value) || 0,
+    status: editStatus.value,
+    quantity: Number(editQuantity.value) || 0,
+    description: editDescription.value.trim(),
+    image: newImage || editOldImage
+  };
+
+  const res = await fetch('/api/products/' + id, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+
+  if (!res.ok) {
+    alert('Не удалось сохранить изменения');
+    return;
+  }
+
+  editPanel.style.display = 'none';
+  await loadProducts();
+});
+
+// ====== ЗАКАЗЫ ======
+const ordersList = document.getElementById('orders-list');
+
+async function loadOrders() {
+  const res = await fetch('/api/orders');
+  const orders = await res.json();
+  ordersList.innerHTML = '';
+
+  if (!orders.length) {
+    ordersList.innerHTML = '<p class="eks-muted">Заказов пока нет.</p>';
+    return;
+  }
+
+  orders.forEach(o => {
+    const wrap = document.createElement('div');
+    wrap.className = 'product-row';
+    const date = new Date(o.createdAt);
+    const dateStr = date.toLocaleString('ru-RU');
+
+    let itemsHtml = '';
+    (o.items || []).forEach(it => {
+      itemsHtml += `<div class="small">– ${it.name} (${it.code || '-'}) × ${it.qty} = ${it.lineTotal.toLocaleString('ru-RU')} ₽</div>`;
+    });
+
+    wrap.innerHTML = `
+      <div class="row-main">
+        <strong>Заказ #${o.id}</strong> <span class="eks-muted small">${dateStr}</span><br>
+        <div class="small">Имя: ${o.name || '-'}</div>
+        <div class="small">Телефон: ${o.phone || '-'}</div>
+        <div class="small">Город: ${o.city || '-'}</div>
+        <div class="small">Комментарий: ${o.comment || '-'}</div>
+        <div style="margin-top:6px;">${itemsHtml}</div>
+        <div style="margin-top:6px;"><strong>Итого: ${ (o.totalPrice || 0).toLocaleString('ru-RU') } ₽</strong></div>
+      </div>
+    `;
+    ordersList.appendChild(wrap);
+  });
+}
+
+loadProducts();
+</script>
 </body>
 </html>
