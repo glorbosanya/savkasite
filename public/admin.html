@@ -2,188 +2,262 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
+  <title>Админ-панель</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Админка — Электровелосипеды Красноярск</title>
   <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    body {
+      background: #050816;
+      color: #fff;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+    }
+    .admin-wrapper {
+      max-width: 1200px;
+      margin: 40px auto;
+      padding: 24px;
+      background: rgba(15, 23, 42, 0.9);
+      border-radius: 18px;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.6);
+    }
+    h1 {
+      font-size: 28px;
+      margin-bottom: 12px;
+    }
+    h2 {
+      font-size: 22px;
+      margin: 24px 0 12px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.5fr);
+      gap: 32px;
+    }
+    label {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 4px;
+      color: #9ca3af;
+    }
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid #1f2937;
+      background: #020617;
+      color: #e5e7eb;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+    .row {
+      margin-bottom: 10px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 9px 18px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .btn-primary {
+      background: #a3e635;
+      color: #111827;
+    }
+    .btn-outline {
+      background: transparent;
+      color: #e5e7eb;
+      border: 1px solid #4b5563;
+    }
+    .status {
+      margin-top: 8px;
+      font-size: 13px;
+      color: #a5b4fc;
+    }
+    .products-list {
+      margin-top: 8px;
+      border-radius: 14px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid #1f2937;
+      max-height: 500px;
+      overflow: auto;
+    }
+    .product-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border-bottom: 1px solid #111827;
+    }
+    .product-item:last-child {
+      border-bottom: none;
+    }
+    .product-thumb {
+      width: 56px;
+      height: 56px;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #020617;
+      flex-shrink: 0;
+    }
+    .product-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .product-main {
+      flex: 1;
+    }
+    .product-title {
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .product-meta {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: 3px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      background: rgba(34, 197, 94, 0.1);
+      color: #bbf7d0;
+      margin-left: 6px;
+    }
+    .badge.out {
+      background: rgba(239, 68, 68, 0.1);
+      color: #fecaca;
+    }
+    .product-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .product-actions .btn {
+      padding: 4px 10px;
+      font-size: 11px;
+    }
+
+    @media (max-width: 900px) {
+      .admin-wrapper {
+        margin: 16px;
+        padding: 16px;
+      }
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
 <body>
+  <div class="admin-wrapper">
+    <h1>Админ-панель</h1>
+    <p style="font-size: 14px; color: #9ca3af; margin-bottom: 20px">
+      Здесь можно добавлять и редактировать товары. После деплоя товары уже не
+      пропадают — всё лежит в базе PostgreSQL.
+    </p>
 
-<header class="eks-header">
-  <div class="eks-container">
-    <div class="eks-logo">ЭЛЕКТРОВЕЛОСИПЕДЫ<br>КРАСНОЯРСК</div>
-    <nav class="eks-nav" id="eks-nav">
-      <a href="/">Главная</a>
-      <a href="/catalog">Каталог</a>
-      <a href="/cart">Корзина</a>
-      <a href="/admin">Админка</a>
-    </nav>
-    <button class="eks-burger" id="eks-burger">
-      <span></span><span></span><span></span>
-    </button>
-  </div>
-</header>
+    <div class="grid">
+      <!-- ФОРМА ТОВАРА -->
+      <div>
+        <h2>Добавить / изменить товар</h2>
+        <form id="productForm" enctype="multipart/form-data">
+          <input type="hidden" name="id" id="productId" />
 
-<main class="eks-container admin-container">
-  <h1>Админ-панель</h1>
+          <div class="row">
+            <label for="name">Название</label>
+            <input type="text" id="name" name="name" required />
+          </div>
 
-  <!-- Табы -->
-  <div style="margin-bottom:16px; display:flex; gap:8px; flex-wrap:wrap;">
-    <button id="tab-products" class="btn btn-ghost">Товары</button>
-    <button id="tab-orders" class="btn btn-ghost">Заказы</button>
-  </div>
+          <div class="row">
+            <label for="code">Код товара</label>
+            <input type="text" id="code" name="code" />
+          </div>
 
-  <!-- ====== БЛОК ТОВАРОВ ====== -->
-  <section id="admin-products-section">
-    <div class="admin-panel">
-      <h2>Добавить товар</h2>
-      <div class="admin-grid">
-        <div>
-          <label>Название</label>
-          <input id="add-name" />
+          <div class="row">
+            <label for="category">Категория</label>
+            <input
+              type="text"
+              id="category"
+              name="category"
+              placeholder="Например: амортизаторы, электрика, аренда"
+            />
+          </div>
+
+          <div class="row">
+            <label for="price">Цена, ₽</label>
+            <input type="number" id="price" name="price" min="0" />
+          </div>
+
+          <div class="row">
+            <label for="quantity">Количество в наличии</label>
+            <input type="number" id="quantity" name="quantity" min="0" value="0" />
+          </div>
+
+          <div class="row">
+            <label for="status">Статус</label>
+            <select id="status" name="status">
+              <option value="in_stock">В наличии</option>
+              <option value="expected">Ожидается</option>
+              <option value="out_of_stock">Нет в наличии</option>
+            </select>
+          </div>
+
+          <div class="row">
+            <label for="description">Описание</label>
+            <textarea id="description" name="description"></textarea>
+          </div>
+
+          <div class="row">
+            <label for="image">Фото товара</label>
+            <input type="file" id="image" name="image" accept="image/*" />
+          </div>
+
+          <input type="hidden" name="currentImage" id="currentImage" />
+
+          <div style="display: flex; gap: 10px; margin-top: 12px">
+            <button type="submit" class="btn btn-primary" id="saveBtn">
+              Сохранить товар
+            </button>
+            <button type="button" class="btn btn-outline" id="resetBtn">
+              Очистить форму
+            </button>
+          </div>
+
+          <div id="formStatus" class="status"></div>
+        </form>
+      </div>
+
+      <!-- СПИСОК ТОВАРОВ -->
+      <div>
+        <h2>Товары в базе</h2>
+        <div class="row">
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="Поиск по названию / коду…"
+          />
         </div>
-        <div>
-          <label>Код</label>
-          <input id="add-code" />
-        </div>
-        <div>
-          <label>Категория</label>
-          <select id="add-category">
-            <option value="аксессуары">Аксессуары</option>
-            <option value="электрика">Электрика</option>
-            <option value="контроллеры">Контроллеры</option>
-            <option value="свет">Свет</option>
-            <option value="экипировка">Экипировка</option>
-            <option value="аренда">Аренда электровелосипедов</option>
-          </select>
-        </div>
-        <div>
-          <label>Цена (₽)</label>
-          <input type="number" id="add-price" min="0" value="0" />
-        </div>
-        <div>
-          <label>Статус</label>
-          <select id="add-status">
-            <option value="in_stock">В наличии</option>
-            <option value="awaiting">Ожидается</option>
-          </select>
-        </div>
-        <div>
-          <label>Кол-во в наличии</label>
-          <input type="number" id="add-quantity" min="0" value="0" />
-        </div>
-        <div class="file-field">
-          <label>Фото товара</label>
-          <input type="file" id="add-image" accept="image/*" />
-        </div>
-        <div style="grid-column:1/-1;">
-          <label>Описание</label>
-          <textarea id="add-description"></textarea>
+        <div id="productsList" class="products-list">
+          <div style="padding: 12px; font-size: 13px; color: #9ca3af">
+            Товары ещё не загружены…
+          </div>
         </div>
       </div>
-      <button id="add-product-btn" class="btn">Добавить</button>
-    </div>
-
-    <div class="admin-panel">
-      <div class="admin-list-head">
-        <h2 style="margin:0;">Товары</h2>
-        <input id="admin-search" placeholder="Фильтр по названию / коду..." />
-      </div>
-      <div id="admin-products-list"></div>
-    </div>
-
-    <!-- Редактирование -->
-    <div class="admin-panel" id="edit-panel" style="display:none;">
-      <h2>Редактирование товара</h2>
-      <input type="hidden" id="edit-id" />
-      <div class="admin-grid">
-        <div>
-          <label>Название</label>
-          <input id="edit-name" />
-        </div>
-        <div>
-          <label>Код</label>
-          <input id="edit-code" />
-        </div>
-        <div>
-          <label>Категория</label>
-          <select id="edit-category">
-            <option value="аксессуары">Аксессуары</option>
-            <option value="электрика">Электрика</option>
-            <option value="контроллеры">Контроллеры</option>
-            <option value="свет">Свет</option>
-            <option value="экипировка">Экипировка</option>
-            <option value="аренда">Аренда электровелосипедов</option>
-          </select>
-        </div>
-        <div>
-          <label>Цена (₽)</label>
-          <input type="number" id="edit-price" min="0" value="0" />
-        </div>
-        <div>
-          <label>Статус</label>
-          <select id="edit-status">
-            <option value="in_stock">В наличии</option>
-            <option value="awaiting">Ожидается</option>
-          </select>
-        </div>
-        <div>
-          <label>Кол-во в наличии</label>
-          <input type="number" id="edit-quantity" min="0" value="0" />
-        </div>
-        <div class="file-field">
-          <label>Новое фото (если нужно заменить)</label>
-          <input type="file" id="edit-image" accept="image/*" />
-          <img id="edit-preview" class="edit-preview" src="" alt="" />
-        </div>
-        <div style="grid-column:1/-1;">
-          <label>Описание</label>
-          <textarea id="edit-description"></textarea>
-        </div>
-      </div>
-      <div class="edit-actions">
-        <button id="save-edit-btn" class="btn">Сохранить изменения</button>
-        <button id="cancel-edit-btn" class="btn-ghost">Отмена</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- ====== БЛОК ЗАКАЗОВ ====== -->
-  <section id="admin-orders-section" style="display:none;">
-    <div class="admin-panel">
-      <h2>Заказы</h2>
-      <div id="orders-list"></div>
-    </div>
-  </section>
-</main>
-
-<footer class="eks-footer">
-  <div class="eks-container eks-footer-grid">
-    <div>
-      <div class="eks-logo footer">Электровелосипеды Красноярск</div>
-      <p class="eks-muted">Ремонт, аренда и запчасти для электровелосипедов.</p>
-    </div>
-    <div>
-      <h4>Навигация</h4>
-      <ul>
-        <li><a href="/">Главная</a></li>
-        <li><a href="/catalog">Каталог</a></li>
-        <li><a href="/cart">Корзина</a></li>
-      </ul>
-    </div>
-    <div>
-      <h4>Контакты</h4>
-      <p>Тел: <a href="tel:+79832800982">8 (983) 280-09-82</a></p>
-      <p>Адрес: Красноярск, пр-т Красноярский Рабочий, 160/4</p>
-      <p>Email: <a href="mailto:avdddenis@gmail.com">avdddenis@gmail.com</a></p>
     </div>
   </div>
-  <div class="eks-footer-bottom">© 2025 Электровелосипеды Красноярск</div>
-</footer>
 
-<!-- JS админки — тот же, что я уже тебе давал, остаётся без изменений -->
-<script>
-/* здесь остаётся тот же большой JS-блок, который сейчас в admin.html
-   — его можешь не трогать, просто оставь как есть */
-</script>
+  <script src="/js/admin.js" defer></script>
 </body>
 </html>
