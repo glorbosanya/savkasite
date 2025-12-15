@@ -70,10 +70,8 @@ const observer = new IntersectionObserver(
 // =================== ХЕЛПЕР КАРТИНОК =====================
 function imgSrcFromProduct(p, fallback = '/img/scooter2.png') {
   if (!p || !p.image) return fallback;
-  if (typeof p.image === 'string' && p.image.startsWith('data:')) {
-    return p.image;
-  }
-  return '/uploads/' + p.image; // старый вариант
+  // В админке мы кладём в image dataURL (base64), поэтому просто возвращаем его
+  return p.image;
 }
 
 // =================== КОРЗИНА (localStorage) ==============
@@ -294,8 +292,15 @@ function initCartPage() {
   const totalPriceEl = document.getElementById('cart-total-price');
   const orderForm = document.getElementById('order-form');
 
+  // сюда будем складывать состав заказа
+  let currentOrderItems = [];
+  let currentOrderTotal = 0;
+
   async function renderCart() {
     let cart = getCart();
+    currentOrderItems = [];
+    currentOrderTotal = 0;
+
     if (!cart.length) {
       itemsEl.innerHTML = '';
       emptyEl.style.display = 'block';
@@ -321,6 +326,15 @@ function initCartPage() {
       const lineTotal = (p.price || 0) * item.qty;
       totalCount += item.qty;
       totalPrice += lineTotal;
+
+      currentOrderItems.push({
+        productId: p.id,
+        name: p.name,
+        code: p.code,
+        price: p.price || 0,
+        qty: item.qty,
+        lineTotal
+      });
 
       const row = document.createElement('div');
       row.className = 'cart-row';
@@ -358,6 +372,8 @@ function initCartPage() {
     totalCountEl.textContent = `${totalCount} шт.`;
     totalPriceEl.textContent = `${totalPrice.toLocaleString('ru-RU')} ₽`;
 
+    currentOrderTotal = totalPrice;
+
     emptyEl.style.display = 'none';
     summaryEl.style.display = 'block';
     orderSection.style.display = 'block';
@@ -389,21 +405,42 @@ function initCartPage() {
   });
 
   if (orderForm) {
-    orderForm.addEventListener('submit', (e) => {
+    orderForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+
       const name = document.getElementById('order-name').value.trim();
       const phone = document.getElementById('order-phone').value.trim();
       const city = document.getElementById('order-city').value.trim();
       const comment = document.getElementById('order-comment').value.trim();
 
-      alert(
-        'Заявка отправлена!\n\n' +
-        'Имя: ' + name + '\n' +
-        'Телефон: ' + phone + '\n' +
-        'Город: ' + city + '\n\n' +
-        'Комментарий:\n' + comment + '\n\n' +
-        'Дальше ты сам свяжешься с клиентом по телефону :)'
-      );
+      if (!phone) {
+        alert('Укажи номер телефона, чтобы мы могли перезвонить 🙂');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name,
+            phone,
+            city,
+            comment,
+            items: currentOrderItems,
+            totalPrice: currentOrderTotal
+          })
+        });
+
+        if (!res.ok) throw new Error('bad status');
+
+        alert('Заявка отправлена! Мы свяжемся с тобой по телефону.');
+        saveCart([]);          // чистим корзину
+        await renderCart();    // перерисовываем
+      } catch (err) {
+        console.error(err);
+        alert('Не получилось отправить заявку. Попробуй чуть позже.');
+      }
     });
   }
 
