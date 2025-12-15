@@ -116,16 +116,9 @@
 <script src="https://api-maps.yandex.ru/2.1/?apikey=ТВОЙ_API_КЛЮЧ&lang=ru_RU" type="text/javascript"></script>
 <script>
   ymaps.ready(function () {
-    const officeCoords = [56.010563, 92.852572]; // заменишь на свои
-    const map = new ymaps.Map('map', {
-      center: officeCoords,
-      zoom: 14,
-      controls: ['zoomControl', 'routeButtonControl']
-    });
-
-    const placemark = new ymaps.Placemark(officeCoords, {
+          balloonContentBody: 'Ремонт, аренда и запчасти.<br>ул. Проспект им. Красноярский Рабочий 160/4'
       balloonContentHeader: 'Электросамокаты Красноярск',
-      balloonContentBody: 'Ремонт, аренда и запчасти.<br>ул. Примерная, 10'
+      balloonContentBody: 'Ремонт, аренда и запчасти.<br>ул. Проспект им. Красноярский Рабочий 160/4'
     }, { preset: 'islands#greenDotIcon' });
 
     map.geoObjects.add(placemark);
