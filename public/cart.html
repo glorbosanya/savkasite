@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Корзина — Электросамокаты Красноярск</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<header class="eks-header">
+  <div class="eks-container">
+    <div class="eks-logo">ЭЛЕКТРОСАМОКАТЫ<br>КРАСНОЯРСК</div>
+    <nav class="eks-nav" id="eks-nav">
+      <a href="/">Главная</a>
+      <a href="/catalog">Каталог запчастей</a>
+      <a href="/#services">Услуги</a>
+      <a href="/#contacts">Контакты</a>
+      <a href="/cart" class="cart-link">
+        Корзина <span id="cart-count-header" class="cart-count-badge">0</span>
+      </a>
+    </nav>
+    <button class="eks-burger" id="eks-burger">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<main class="eks-container cart-page" id="cart-page">
+  <h1>Корзина</h1>
+
+  <div id="cart-items"></div>
+
+  <div id="cart-empty" class="eks-muted" style="display:none;">
+    В корзине пока пусто. Зайдите в <a href="/catalog">каталог</a> и добавьте запчасти.
+  </div>
+
+  <div id="cart-summary" class="cart-summary" style="display:none;">
+    <div class="cart-summary-line">
+      <span>Товаров:</span>
+      <span id="cart-total-count"></span>
+    </div>
+    <div class="cart-summary-line">
+      <span>Сумма заказа:</span>
+      <span id="cart-total-price"></span>
+    </div>
+  </div>
+
+  <section id="order-form-section" class="order-form" style="display:none;">
+    <h2>Оформление заказа</h2>
+    <p class="eks-muted small">
+      После отправки заявки мы свяжемся с вами, уточним наличие и время самовывоза / доставки.
+    </p>
+
+    <form id="order-form">
+      <div class="order-grid">
+        <input type="text" id="order-name" placeholder="Имя" required />
+        <input type="tel" id="order-phone" placeholder="Телефон" required />
+        <input type="text" id="order-city" placeholder="Населённый пункт" value="Красноярск" />
+        <textarea id="order-comment" placeholder="Комментарий к заказу"></textarea>
+      </div>
+      <button class="btn" type="submit">Отправить заказ</button>
+    </form>
+  </section>
+</main>
+
+<footer class="eks-footer">
+  <div class="eks-container eks-footer-grid">
+    <div>
+      <div class="eks-logo footer">Электросамокаты Красноярск</div>
+      <p class="eks-muted">Ремонт, аренда и запчасти для электросамокатов в Красноярске.</p>
+    </div>
+    <div>
+      <h4>Навигация</h4>
+      <ul>
+        <li><a href="/">Главная</a></li>
+        <li><a href="/catalog">Каталог запчастей</a></li>
+        <li><a href="/#contacts">Контакты</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Контакты</h4>
+      <p>Тел: <a href="tel:+79832800982">8 (983) 280-09-82</a></p>
+      <p>Адрес: Красноярск, пр-т Красноярский Рабочий, 160/4</p>
+      <p>Email: <a href="mailto:avdddenis@gmail.com">avdddenis@gmail.com</a></p>
+    </div>
+  </div>
+  <div class="eks-footer-bottom">© 2025 Электросамокаты Красноярск</div>
+</footer>
+
+<script src="/js/main.js"></script>
+</body>
+</html>
