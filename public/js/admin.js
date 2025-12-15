@@ -1,237 +1,214 @@
-// ---- Вспомогательное: читаем файл в base64 -----------------------------
-function fileToDataURL(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = e => resolve(e.target.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
+// public/js/admin.js
 
-// ---- API helpers -------------------------------------------------------
-async function apiGetProducts() {
-  const res = await fetch('/api/products');
-  return await res.json();
-}
-
-async function apiCreateProduct(payload) {
-  const res = await fetch('/api/products', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-  if (!res.ok) {
-    alert('Ошибка создания товара (возможно, не авторизован)');
-    return null;
+async function fetchJSON(url, options) {
+  const res = await fetch(url, options);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.error) {
+    throw new Error(data.error || "Ошибка запроса");
   }
-  return await res.json();
+  return data;
 }
 
-async function apiUpdateProduct(id, payload) {
-  const res = await fetch('/api/products/' + id, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-  if (!res.ok) {
-    alert('Ошибка обновления товара');
-    return null;
-  }
-  return await res.json();
-}
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.getElementById("productForm");
+  const formStatus = document.getElementById("formStatus");
+  const productsList = document.getElementById("productsList");
+  const resetBtn = document.getElementById("resetBtn");
+  const searchInput = document.getElementById("searchInput");
 
-async function apiDeleteProduct(id) {
-  const res = await fetch('/api/products/' + id, { method: 'DELETE' });
-  if (!res.ok) {
-    alert('Ошибка удаления товара');
-    return null;
-  }
-  return await res.json();
-}
+  const idField = document.getElementById("productId");
+  const currentImageField = document.getElementById("currentImage");
 
-let allProducts = [];
+  // -------- загрузка списка товаров --------
+  async function loadProducts(query = "") {
+    productsList.innerHTML =
+      '<div style="padding:10px;font-size:13px;color:#9ca3af">Загрузка…</div>';
 
-function imgSrcFromProduct(p) {
-  if (!p.image) return 'img/scooter2.png';
-  if (typeof p.image === 'string' && p.image.startsWith('data:')) {
-    return p.image; // dataURL
-  }
-  // старый вариант, если вдруг что-то осталось в базе
-  return '/uploads/' + p.image;
-}
-
-function renderProductList(filter = '') {
-  const listEl = document.getElementById('admin-product-list');
-  listEl.innerHTML = '';
-
-  const norm = filter.trim().toLowerCase();
-  const products = allProducts.filter(p => {
-    if (!norm) return true;
-    return (
-      (p.name || '').toLowerCase().includes(norm) ||
-      (p.code || '').toLowerCase().includes(norm)
-    );
-  });
-
-  if (products.length === 0) {
-    listEl.innerHTML = '<p class="eks-muted">Товаров не найдено.</p>';
-    return;
-  }
-
-  products.forEach(p => {
-    const row = document.createElement('div');
-    row.className = 'product-row';
-
-    const statusText = p.status === 'in_stock' ? 'В наличии' : 'Ожидается';
-
-    row.innerHTML = `
-      <div class="row-main">
-        <strong>${p.name}</strong>
-        <div class="eks-muted small">Код: ${p.code || '-'}</div>
-        <div class="eks-muted small">Категория: ${p.category || '-'}</div>
-        <div class="eks-muted small">${p.price || 0} ₽ — ${statusText}</div>
-      </div>
-      <div class="row-buttons">
-        <button class="btn-small" data-id="${p.id}" data-action="edit">Редактировать</button>
-        <button class="btn-small btn-red" data-id="${p.id}" data-action="delete">Удалить</button>
-      </div>
-    `;
-    listEl.appendChild(row);
-  });
-}
-
-async function reloadProducts() {
-  allProducts = await apiGetProducts();
-  const search = document.getElementById('admin-search');
-  renderProductList(search ? search.value : '');
-}
-
-// ---- Добавление товара --------------------------------------------------
-document.getElementById('add-btn').addEventListener('click', async () => {
-  const name = document.getElementById('add-name').value.trim();
-  const code = document.getElementById('add-code').value.trim();
-  const description = document.getElementById('add-desc').value.trim();
-  const price = Number(document.getElementById('add-price').value || 0);
-  const category = document.getElementById('add-category').value;
-  const status = document.getElementById('add-status').value;
-  const imageFile = document.getElementById('add-image').files[0];
-
-  let imageData = null;
-  if (imageFile) {
     try {
-      imageData = await fileToDataURL(imageFile);
-    } catch (e) {
-      console.error(e);
-      alert('Не удалось прочитать файл изображения');
-      return;
+      const url = query
+        ? `/api/products?search=${encodeURIComponent(query)}`
+        : "/api/products";
+
+      const products = await fetchJSON(url);
+
+      if (!products.length) {
+        productsList.innerHTML =
+          '<div style="padding:10px;font-size:13px;color:#9ca3af">Товаров пока нет</div>';
+        return;
+      }
+
+      productsList.innerHTML = "";
+      for (const p of products) {
+        const item = document.createElement("div");
+        item.className = "product-item";
+
+        const thumb = document.createElement("div");
+        thumb.className = "product-thumb";
+        if (p.image) {
+          const img = document.createElement("img");
+          img.src = p.image;
+          img.alt = p.name || "";
+          thumb.appendChild(img);
+        }
+
+        const main = document.createElement("div");
+        main.className = "product-main";
+        const title = document.createElement("div");
+        title.className = "product-title";
+        title.textContent = p.name || "(без названия)";
+
+        const meta = document.createElement("div");
+        meta.className = "product-meta";
+        meta.textContent = `Код: ${p.code || "-"} · ${
+          p.price || 0
+        } ₽ · Кол-во: ${p.quantity || 0}`;
+
+        const badge = document.createElement("span");
+        badge.className =
+          "badge " + (p.status === "out_of_stock" ? "out" : "");
+        badge.textContent =
+          p.status === "expected"
+            ? "Ожидается"
+            : p.status === "out_of_stock"
+            ? "Нет в наличии"
+            : "В наличии";
+
+        meta.appendChild(badge);
+
+        main.appendChild(title);
+        main.appendChild(meta);
+
+        const actions = document.createElement("div");
+        actions.className = "product-actions";
+
+        const editBtn = document.createElement("button");
+        editBtn.type = "button";
+        editBtn.className = "btn btn-outline";
+        editBtn.textContent = "Редактировать";
+        editBtn.addEventListener("click", () => fillFormFromProduct(p));
+
+        const delBtn = document.createElement("button");
+        delBtn.type = "button";
+        delBtn.className = "btn btn-outline";
+        delBtn.style.color = "#fecaca";
+        delBtn.textContent = "Удалить";
+        delBtn.addEventListener("click", () => deleteProduct(p.id));
+
+        actions.appendChild(editBtn);
+        actions.appendChild(delBtn);
+
+        item.appendChild(thumb);
+        item.appendChild(main);
+        item.appendChild(actions);
+
+        productsList.appendChild(item);
+      }
+    } catch (err) {
+      console.error(err);
+      productsList.innerHTML =
+        '<div style="padding:10px;font-size:13px;color:#fecaca">Ошибка загрузки товаров</div>';
     }
   }
 
-  const payload = { name, code, description, price, category, status, image: imageData };
-  const created = await apiCreateProduct(payload);
-  if (created) {
-    alert('Товар добавлен');
-    document.getElementById('add-name').value = '';
-    document.getElementById('add-code').value = '';
-    document.getElementById('add-desc').value = '';
-    document.getElementById('add-price').value = '';
-    document.getElementById('add-image').value = '';
-    reloadProducts();
-  }
-});
-
-// ---- Обработчик списка (редактирование / удаление) ----------------------
-document.getElementById('admin-product-list').addEventListener('click', async (e) => {
-  const btn = e.target.closest('button[data-action]');
-  if (!btn) return;
-  const id = btn.dataset.id;
-  const action = btn.dataset.action;
-  const product = allProducts.find(p => String(p.id) === String(id));
-  if (!product) return;
-
-  if (action === 'delete') {
-    if (!confirm('Удалить товар "' + product.name + '"?')) return;
-    const res = await apiDeleteProduct(id);
-    if (res) reloadProducts();
+  // -------- заполнить форму данными товара --------
+  function fillFormFromProduct(p) {
+    idField.value = p.id;
+    document.getElementById("name").value = p.name || "";
+    document.getElementById("code").value = p.code || "";
+    document.getElementById("category").value = p.category || "";
+    document.getElementById("price").value = p.price || 0;
+    document.getElementById("quantity").value = p.quantity || 0;
+    document.getElementById("status").value = p.status || "in_stock";
+    document.getElementById("description").value = p.description || "";
+    currentImageField.value = p.image || "";
+    formStatus.textContent = "Режим редактирования товара #" + p.id;
   }
 
-  if (action === 'edit') {
-    openEditForm(product);
+  // -------- очистка формы --------
+  function resetForm() {
+    form.reset();
+    idField.value = "";
+    currentImageField.value = "";
+    formStatus.textContent = "";
   }
-});
 
-// ---- Форма редактирования -----------------------------------------------
-function openEditForm(product) {
-  const panel = document.getElementById('edit-panel');
-  panel.style.display = 'block';
+  resetBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    resetForm();
+  });
 
-  document.getElementById('edit-id').value = product.id;
-  document.getElementById('edit-name').value = product.name || '';
-  document.getElementById('edit-code').value = product.code || '';
-  document.getElementById('edit-desc').value = product.description || '';
-  document.getElementById('edit-price').value = product.price || '';
-  document.getElementById('edit-category').value = product.category || 'аксессуары';
-  document.getElementById('edit-status').value = product.status || 'in_stock';
+  // -------- отправка формы --------
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-  const preview = document.getElementById('edit-preview');
-  const src = imgSrcFromProduct(product);
-  if (src) {
-    preview.src = src;
-    preview.style.display = 'block';
-  } else {
-    preview.style.display = 'none';
-  }
-  document.getElementById('edit-image').value = '';
-}
+    formStatus.style.color = "#a5b4fc";
+    formStatus.textContent = "Отправка…";
 
-document.getElementById('cancel-edit-btn').addEventListener('click', () => {
-  document.getElementById('edit-panel').style.display = 'none';
-});
-
-document.getElementById('save-edit-btn').addEventListener('click', async () => {
-  const id = document.getElementById('edit-id').value;
-  if (!id) return;
-
-  const name = document.getElementById('edit-name').value.trim();
-  const code = document.getElementById('edit-code').value.trim();
-  const description = document.getElementById('edit-desc').value.trim();
-  const price = Number(document.getElementById('edit-price').value || 0);
-  const category = document.getElementById('edit-category').value;
-  const status = document.getElementById('edit-status').value;
-
-  let product = allProducts.find(p => String(p.id) === String(id));
-  let imageData = product ? product.image : null;
-
-  const newFile = document.getElementById('edit-image').files[0];
-  if (newFile) {
     try {
-      imageData = await fileToDataURL(newFile);
-    } catch (e) {
-      console.error(e);
-      alert('Не удалось прочитать файл изображения');
-      return;
+      const formData = new FormData(form);
+      const id = idField.value.trim();
+
+      let url = "/api/products";
+      let method = "POST";
+
+      if (id) {
+        url = `/api/products/${id}`;
+        method = "PUT";
+      }
+
+      console.log("Отправка на", url, "метод", method);
+
+      const res = await fetch(url, {
+        method,
+        body: formData
+      });
+
+      const data = await res.json().catch(() => ({}));
+      console.log("Ответ сервера:", data);
+
+      if (!res.ok || data.error) {
+        throw new Error(data.error || "Ошибка сохранения товара");
+      }
+
+      formStatus.style.color = "#bbf7d0";
+      formStatus.textContent = id
+        ? "Товар обновлён"
+        : "Товар добавлен (ID: " + data.id + ")";
+
+      resetForm();
+      await loadProducts(searchInput.value.trim());
+    } catch (err) {
+      console.error(err);
+      formStatus.style.color = "#fecaca";
+      formStatus.textContent = err.message || "Ошибка сохранения товара";
+    }
+  });
+
+  // -------- удалить товар --------
+  async function deleteProduct(id) {
+    if (!confirm("Удалить товар #" + id + "?")) return;
+    try {
+      const res = await fetch(`/api/products/${id}`, {
+        method: "DELETE"
+      });
+      const data = await res.json().catch(() => ({}));
+      console.log("Удаление:", data);
+      await loadProducts(searchInput.value.trim());
+    } catch (err) {
+      console.error(err);
+      alert("Ошибка удаления");
     }
   }
 
-  const payload = { name, code, description, price, category, status, image: imageData };
-  const res = await apiUpdateProduct(id, payload);
-  if (res) {
-    alert('Сохранено');
-    document.getElementById('edit-panel').style.display = 'none';
-    reloadProducts();
-  }
-});
+  // -------- поиск --------
+  let searchTimer = null;
+  searchInput.addEventListener("input", () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      loadProducts(searchInput.value.trim());
+    }, 300);
+  });
 
-// ---- Фильтр --------------------------------------------------------------
-document.getElementById('admin-search').addEventListener('input', (e) => {
-  renderProductList(e.target.value);
+  // первая загрузка
+  loadProducts();
 });
-
-// ---- Logout --------------------------------------------------------------
-document.getElementById('logout-btn').addEventListener('click', async () => {
-  await fetch('/api/logout', { method: 'POST' });
-  window.location.href = '/login';
-});
-
-// ---- Init ----------------------------------------------------------------
-reloadProducts();
