@@ -1,4 +1,4 @@
-// server.js — версия с PostgreSQL и авто-созданием таблиц
+// server.js — backend c PostgreSQL и автосозданием таблиц
 
 const express = require("express");
 const path = require("path");
@@ -9,12 +9,15 @@ const { Pool } = require("pg");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ---------- ПОДКЛЮЧЕНИЕ К БД ----------
+// ---------- Подключение к PostgreSQL ----------
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("localhost")
-    ? { rejectUnauthorized: false }
-    : false
+  ssl:
+    process.env.DATABASE_URL &&
+    !process.env.DATABASE_URL.includes("localhost")
+      ? { rejectUnauthorized: false }
+      : false,
 });
 
 pool
@@ -22,9 +25,10 @@ pool
   .then(() => console.log("PostgreSQL connected"))
   .catch((err) => console.error("DB connection error:", err));
 
-// ---------- АВТО-СОЗДАНИЕ ТАБЛИЦ ----------
+// ---------- Автосоздание таблиц ----------
+
 async function initDb() {
-  // товары
+  // таблица товаров
   await pool.query(`
     CREATE TABLE IF NOT EXISTS products (
       id SERIAL PRIMARY KEY,
@@ -39,7 +43,7 @@ async function initDb() {
     );
   `);
 
-  // заказы
+  // таблица заказов
   await pool.query(`
     CREATE TABLE IF NOT EXISTS orders (
       id SERIAL PRIMARY KEY,
@@ -69,7 +73,8 @@ async function initDb() {
   console.log("DB tables ready");
 }
 
-// ---------- MIDDLEWARE ----------
+// ---------- Middleware ----------
+
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
@@ -80,41 +85,51 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// загрузка файлов
+// multer для загрузки файлов
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
+  destination(req, file, cb) {
     cb(null, uploadDir);
   },
-  filename: function (req, file, cb) {
+  filename(req, file, cb) {
     const safeName = Date.now() + "-" + file.originalname.replace(/\s+/g, "_");
     cb(null, safeName);
-  }
+  },
 });
 const upload = multer({ storage });
 
-// ---------- СТРАНИЦЫ ----------
+// ---------- Страницы ----------
+
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
+
 app.get("/catalog", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "catalog.html"));
 });
+
 app.get("/product", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "product.html"));
 });
+
 app.get("/cart", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "cart.html"));
 });
+
 app.get("/admin", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
+
+app.get("/admin-orders", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "admin-orders.html"));
+});
+
 app.get("/login", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
 // ---------- API: ТОВАРЫ ----------
 
-// список товаров
+// список товаров с поиском
 app.get("/api/products", async (req, res) => {
   try {
     const { search, category } = req.query;
@@ -134,19 +149,20 @@ app.get("/api/products", async (req, res) => {
     }
 
     const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
     const result = await pool.query(
       `
-        SELECT id, name, code, description, category, price, status, quantity, image
-        FROM products
-        ${whereSql}
-        ORDER BY id DESC
-      `,
+      SELECT id, name, code, description, category, price, status, quantity, image
+      FROM products
+      ${whereSql}
+      ORDER BY id DESC
+    `,
       params
     );
 
     res.json(result.rows);
   } catch (err) {
-    console.error(err);
+    console.error("GET /api/products error:", err);
     res.status(500).json({ error: "db_error" });
   }
 });
@@ -157,10 +173,10 @@ app.get("/api/products/:id", async (req, res) => {
     const id = Number(req.params.id);
     const result = await pool.query(
       `
-        SELECT id, name, code, description, category, price, status, quantity, image
-        FROM products
-        WHERE id = $1
-      `,
+      SELECT id, name, code, description, category, price, status, quantity, image
+      FROM products
+      WHERE id = $1
+    `,
       [id]
     );
 
@@ -170,7 +186,7 @@ app.get("/api/products/:id", async (req, res) => {
 
     res.json(result.rows[0]);
   } catch (err) {
-    console.error(err);
+    console.error("GET /api/products/:id error:", err);
     res.status(500).json({ error: "db_error" });
   }
 });
@@ -185,18 +201,18 @@ app.post("/api/products", upload.single("image"), async (req, res) => {
       category = "",
       price = 0,
       status = "in_stock",
-      quantity = 0
+      quantity = 0,
     } = req.body || {};
 
     const image = req.file ? "/uploads/" + req.file.filename : null;
 
     const result = await pool.query(
       `
-        INSERT INTO products
-          (name, code, description, category, price, status, quantity, image)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-        RETURNING id, name, code, description, category, price, status, quantity, image
-      `,
+      INSERT INTO products
+        (name, code, description, category, price, status, quantity, image)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+      RETURNING id, name, code, description, category, price, status, quantity, image
+    `,
       [
         name,
         code,
@@ -205,13 +221,13 @@ app.post("/api/products", upload.single("image"), async (req, res) => {
         Number(price) || 0,
         status,
         Number(quantity) || 0,
-        image
+        image,
       ]
     );
 
     res.json(result.rows[0]);
   } catch (err) {
-    console.error(err);
+    console.error("POST /api/products error:", err);
     res.status(500).json({ error: "db_error" });
   }
 });
@@ -228,25 +244,25 @@ app.put("/api/products/:id", upload.single("image"), async (req, res) => {
       price = 0,
       status = "in_stock",
       quantity = 0,
-      currentImage = ""
+      currentImage = "",
     } = req.body || {};
 
     const image = req.file ? "/uploads/" + req.file.filename : currentImage || null;
 
     const result = await pool.query(
       `
-        UPDATE products SET
-          name = $1,
-          code = $2,
-          description = $3,
-          category = $4,
-          price = $5,
-          status = $6,
-          quantity = $7,
-          image = $8
-        WHERE id = $9
-        RETURNING id, name, code, description, category, price, status, quantity, image
-      `,
+      UPDATE products SET
+        name = $1,
+        code = $2,
+        description = $3,
+        category = $4,
+        price = $5,
+        status = $6,
+        quantity = $7,
+        image = $8
+      WHERE id = $9
+      RETURNING id, name, code, description, category, price, status, quantity, image
+    `,
       [
         name,
         code,
@@ -256,7 +272,7 @@ app.put("/api/products/:id", upload.single("image"), async (req, res) => {
         status,
         Number(quantity) || 0,
         image,
-        id
+        id,
       ]
     );
 
@@ -266,7 +282,7 @@ app.put("/api/products/:id", upload.single("image"), async (req, res) => {
 
     res.json(result.rows[0]);
   } catch (err) {
-    console.error(err);
+    console.error("PUT /api/products/:id error:", err);
     res.status(500).json({ error: "db_error" });
   }
 });
@@ -278,7 +294,7 @@ app.delete("/api/products/:id", async (req, res) => {
     await pool.query("DELETE FROM products WHERE id = $1", [id]);
     res.json({ success: true });
   } catch (err) {
-    console.error(err);
+    console.error("DELETE /api/products/:id error:", err);
     res.status(500).json({ error: "db_error" });
   }
 });
@@ -309,7 +325,7 @@ app.get("/api/orders", async (req, res) => {
         code: it.code,
         price: it.price,
         qty: it.qty,
-        lineTotal: it.line_total
+        lineTotal: it.line_total,
       });
     });
 
@@ -321,17 +337,17 @@ app.get("/api/orders", async (req, res) => {
       comment: o.comment,
       totalPrice: o.total_price,
       createdAt: o.created_at,
-      items: itemsByOrder[o.id] || []
+      items: itemsByOrder[o.id] || [],
     }));
 
     res.json(result);
   } catch (err) {
-    console.error(err);
+    console.error("GET /api/orders error:", err);
     res.status(500).json({ error: "db_error" });
   }
 });
 
-// создать заказ
+// создать заказ (используется корзиной)
 app.post("/api/orders", async (req, res) => {
   const client = await pool.connect();
   try {
@@ -342,17 +358,17 @@ app.post("/api/orders", async (req, res) => {
       city = "",
       comment = "",
       items = [],
-      totalPrice = 0
+      totalPrice = 0,
     } = body;
 
     await client.query("BEGIN");
 
     const orderRes = await client.query(
       `
-        INSERT INTO orders (customer_name, phone, city, comment, total_price)
-        VALUES ($1,$2,$3,$4,$5)
-        RETURNING id, customer_name, phone, city, comment, total_price, created_at
-      `,
+      INSERT INTO orders (customer_name, phone, city, comment, total_price)
+      VALUES ($1,$2,$3,$4,$5)
+      RETURNING id, customer_name, phone, city, comment, total_price, created_at
+    `,
       [name, phone, city, comment, Number(totalPrice) || 0]
     );
     const order = orderRes.rows[0];
@@ -360,10 +376,10 @@ app.post("/api/orders", async (req, res) => {
     for (const it of items) {
       await client.query(
         `
-          INSERT INTO order_items
-            (order_id, product_id, name, code, price, qty, line_total)
-          VALUES ($1,$2,$3,$4,$5,$6,$7)
-        `,
+        INSERT INTO order_items
+          (order_id, product_id, name, code, price, qty, line_total)
+        VALUES ($1,$2,$3,$4,$5,$6,$7)
+      `,
         [
           order.id,
           it.productId || null,
@@ -371,7 +387,7 @@ app.post("/api/orders", async (req, res) => {
           it.code || "",
           Number(it.price) || 0,
           Number(it.qty) || 0,
-          Number(it.lineTotal) || 0
+          Number(it.lineTotal) || 0,
         ]
       );
     }
@@ -386,18 +402,19 @@ app.post("/api/orders", async (req, res) => {
       comment: order.comment,
       totalPrice: order.total_price,
       createdAt: order.created_at,
-      items
+      items,
     });
   } catch (err) {
     await client.query("ROLLBACK");
-    console.error(err);
+    console.error("POST /api/orders error:", err);
     res.status(500).json({ error: "db_error" });
   } finally {
     client.release();
   }
 });
 
-// ---------- ЗАПУСК ----------
+// ---------- Запуск сервера ----------
+
 initDb()
   .then(() => {
     app.listen(PORT, () => {
