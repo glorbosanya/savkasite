@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Каталог запчастей — Электросамокаты Красноярск</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<header class="eks-header">
+  <div class="eks-container">
+    <div class="eks-logo">Электросамокаты<br>Красноярск</div>
+    <nav class="eks-nav" id="eks-nav">
+      <a href="index.html">Главная</a>
+      <a href="catalog.html">Каталог запчастей</a>
+      <a href="index.html#contacts">Контакты</a>
+    </nav>
+    <button class="eks-burger" id="eks-burger">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<main class="eks-container catalog-page">
+  <div class="catalog-head">
+    <div>
+      <h1>Каталог запчастей</h1>
+      <p class="eks-muted">Все позиции хранятся в базе данных и редактируются в админке.</p>
+    </div>
+    <div class="catalog-filters">
+      <input type="text" id="search" placeholder="Поиск по названию или коду..." />
+      <select id="category">
+        <option value="">Все категории</option>
+        <option value="аксессуары">Аксессуары</option>
+        <option value="электрика">Электрика</option>
+        <option value="контроллеры">Контроллеры</option>
+        <option value="свет">Свет</option>
+        <option value="экипировка">Экипировка</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="products-grid" id="product-list"></div>
+</main>
+
+<footer class="eks-footer">
+  <div class="eks-container eks-footer-grid">
+    <div>
+      <div class="eks-logo footer">Электросамокаты Красноярск</div>
+      <p class="eks-muted">Ремонт, аренда и запчасти для электросамокатов.</p>
+    </div>
+    <div>
+      <h4>Навигация</h4>
+      <ul>
+        <li><a href="index.html">Главная</a></li>
+        <li><a href="catalog.html">Каталог запчастей</a></li>
+        <li><a href="index.html#contacts">Контакты</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Контакты</h4>
+      <p>Тел: <a href="tel:+79998887766">+7 (999) 888-77-66</a></p>
+      <p>Адрес: Красноярск, ул. Примерная, 10</p>
+      <p>Email: <a href="mailto:info@esco-krsk.ru">info@esco-krsk.ru</a></p>
+    </div>
+  </div>
+  <div class="eks-footer-bottom">© 2025 Электросамокаты Красноярск — Все права защищены</div>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>

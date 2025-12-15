@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Админка — Электросамокаты</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<header class="eks-header">
+  <div class="eks-container">
+    <div class="eks-logo">Админ‑панель</div>
+    <button class="btn btn-ghost" id="logout-btn">Выйти</button>
+  </div>
+</header>
+
+<main class="eks-container admin-container">
+  <section class="admin-panel">
+    <h1>Добавить товар</h1>
+    <div class="admin-grid">
+      <input id="add-name" placeholder="Название товара" />
+      <input id="add-code" placeholder="Код товара" />
+      <textarea id="add-desc" placeholder="Описание"></textarea>
+      <input id="add-price" type="number" placeholder="Цена, ₽" />
+      <select id="add-category">
+        <option value="аксессуары">Аксессуары</option>
+        <option value="электрика">Электрика</option>
+        <option value="контроллеры">Контроллеры</option>
+        <option value="свет">Свет</option>
+        <option value="экипировка">Экипировка</option>
+      </select>
+      <select id="add-status">
+        <option value="in_stock">В наличии</option>
+        <option value="expected">Ожидается</option>
+      </select>
+      <div class="file-field">
+        <label>Фото товара:</label>
+        <input type="file" id="add-image" />
+      </div>
+    </div>
+    <button class="btn" id="add-btn">Добавить</button>
+  </section>
+
+  <section class="admin-panel">
+    <div class="admin-list-head">
+      <h2>Товары</h2>
+      <input id="admin-search" placeholder="Фильтр по названию / коду..." />
+    </div>
+    <div id="admin-product-list"></div>
+  </section>
+
+  <section class="admin-panel" id="edit-panel" style="display:none;">
+    <h2>Редактирование товара</h2>
+    <div class="admin-grid">
+      <input id="edit-id" type="hidden" />
+      <input id="edit-name" placeholder="Название товара" />
+      <input id="edit-code" placeholder="Код товара" />
+      <textarea id="edit-desc" placeholder="Описание"></textarea>
+      <input id="edit-price" type="number" placeholder="Цена, ₽" />
+      <select id="edit-category">
+        <option value="аксессуары">Аксессуары</option>
+        <option value="электрика">Электрика</option>
+        <option value="контроллеры">Контроллеры</option>
+        <option value="свет">Свет</option>
+        <option value="экипировка">Экипировка</option>
+      </select>
+      <select id="edit-status">
+        <option value="in_stock">В наличии</option>
+        <option value="expected">Ожидается</option>
+      </select>
+      <div class="file-field">
+        <label>Текущее фото:</label>
+        <img id="edit-preview" src="" alt="Фото" class="edit-preview" />
+        <label>Заменить фото:</label>
+        <input type="file" id="edit-image" />
+      </div>
+    </div>
+    <div class="edit-actions">
+      <button class="btn" id="save-edit-btn">Сохранить изменения</button>
+      <button class="btn btn-ghost" id="cancel-edit-btn">Отмена</button>
+    </div>
+  </section>
+</main>
+
+<script src="js/admin.js"></script>
+</body>
+</html>

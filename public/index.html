@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Электросамокаты Красноярск — ремонт, аренда, запчасти</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<header class="eks-header">
+  <div class="eks-container">
+    <div class="eks-logo">Электросамокаты<br>Красноярск</div>
+    <nav class="eks-nav" id="eks-nav">
+      <a href="index.html">Главная</a>
+      <a href="catalog.html">Каталог запчастей</a>
+      <a href="#services">Услуги</a>
+      <a href="#contacts">Контакты</a>
+    </nav>
+    <button class="eks-burger" id="eks-burger">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="eks-container hero-inner">
+    <div class="hero-text">
+      <h1>Ремонт, аренда и запчасти<br>для электросамокатов в Красноярске</h1>
+      <p>Сделаем ваш самокат снова быстрым и надёжным. Оригинальные запчасти, опытные мастера, честные цены.</p>
+      <div class="hero-actions">
+        <a href="catalog.html" class="btn">Каталог запчастей</a>
+        <a href="#contacts" class="btn btn-ghost">Записаться на ремонт</a>
+      </div>
+      <ul class="hero-list">
+        <li>Диагностика и ремонт любой сложности</li>
+        <li>Почасовая и посуточная аренда самокатов</li>
+        <li>Большой склад оригинальных запчастей</li>
+      </ul>
+    </div>
+    <div class="hero-scooter-wrapper">
+      <img src="img/scooter1.png" alt="Электросамокат" class="hero-scooter" id="scroll-scooter">
+    </div>
+  </div>
+</section>
+
+<section id="services" class="eks-container services">
+  <h2>Что мы делаем</h2>
+  <div class="services-grid">
+    <div class="service-card">
+      <h3>Ремонт и обслуживание</h3>
+      <p>От замены камеры до ремонта контроллера и электрики. Работаем с популярными брендами Xiaomi, Kugoo, Ninebot и др.</p>
+    </div>
+    <div class="service-card">
+      <h3>Аренда самокатов</h3>
+      <p>Почасовая и посуточная аренда — для города, прогулок, курьеров. Есть мощные модели для подъёмов.</p>
+    </div>
+    <div class="service-card">
+      <h3>Продажа запчастей</h3>
+      <p>Широкий выбор оригинальных и аналоговых запчастей. Всё, что нужно для вашего электросамоката.</p>
+    </div>
+  </div>
+</section>
+
+<section class="eks-container popular">
+  <div class="popular-head">
+    <h2>Популярные запчасти</h2>
+    <a href="catalog.html" class="link-muted">Перейти в каталог →</a>
+  </div>
+  <div class="products-grid" id="popular-products">
+    <!-- товары подставит JS -->
+  </div>
+</section>
+
+<section id="contacts" class="eks-container contact-section">
+  <h2>Как нас найти</h2>
+  <p>Телефон: <a href="tel:+79998887766">+7 (999) 888-77-66</a></p>
+  <p>Адрес: Красноярск, ул. Примерная, 10</p>
+  <p>Email: <a href="mailto:info@esco-krsk.ru">info@esco-krsk.ru</a></p>
+
+  <div class="map-wrapper">
+    <div id="map"></div>
+    <p class="map-hint">
+      На карте можно построить маршрут до сервиса: выбери точку отправления и вид транспорта.
+    </p>
+  </div>
+</section>
+
+<footer class="eks-footer">
+  <div class="eks-container eks-footer-grid">
+    <div>
+      <div class="eks-logo footer">Электросамокаты Красноярск</div>
+      <p class="eks-muted">Ремонт, аренда и запчасти для электросамокатов в Красноярске.</p>
+    </div>
+    <div>
+      <h4>Навигация</h4>
+      <ul>
+        <li><a href="index.html">Главная</a></li>
+        <li><a href="catalog.html">Каталог запчастей</a></li>
+        <li><a href="#services">Услуги</a></li>
+        <li><a href="#contacts">Контакты</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Контакты</h4>
+      <p>Тел: <a href="tel:+79998887766">+7 (999) 888-77-66</a></p>
+      <p>Адрес: Красноярск, ул. Примерная, 10</p>
+      <p>Email: <a href="mailto:info@esco-krsk.ru">info@esco-krsk.ru</a></p>
+    </div>
+  </div>
+  <div class="eks-footer-bottom">© 2025 Электросамокаты Красноярск — Все права защищены</div>
+</footer>
+
+<script src="js/main.js"></script>
+<script src="https://api-maps.yandex.ru/2.1/?apikey=ТВОЙ_API_КЛЮЧ&lang=ru_RU" type="text/javascript"></script>
+<script>
+  ymaps.ready(function () {
+    const officeCoords = [56.010563, 92.852572]; // заменишь на свои
+    const map = new ymaps.Map('map', {
+      center: officeCoords,
+      zoom: 14,
+      controls: ['zoomControl', 'routeButtonControl']
+    });
+
+    const placemark = new ymaps.Placemark(officeCoords, {
+      balloonContentHeader: 'Электросамокаты Красноярск',
+      balloonContentBody: 'Ремонт, аренда и запчасти.<br>ул. Примерная, 10'
+    }, { preset: 'islands#greenDotIcon' });
+
+    map.geoObjects.add(placemark);
+
+    const routeControl = map.controls.get('routeButtonControl');
+    routeControl.routePanel.state.set({
+      type: 'auto',
+      toEnabled: false,
+      to: officeCoords
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,555 @@
+/* Основные переменные */
+:root {
+  --eks-bg: #040915;
+  --eks-card: #071223;
+  --eks-text: #f5f7ff;
+  --eks-muted: #9ba4c4;
+  --eks-accent: #b6ff2b;
+  --eks-accent-hover: #d1ff5e;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: radial-gradient(circle at top, #101a33 0, #040915 55%, #02030a 100%);
+  color: var(--eks-text);
+}
+
+/* Контейнеры */
+.eks-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+/* Хедер */
+.eks-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  backdrop-filter: blur(18px);
+  background: linear-gradient(to bottom, rgba(4,9,21,0.9), rgba(4,9,21,0.3));
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.eks-header.scrolled {
+  background: rgba(4,9,21,0.97);
+}
+.eks-header > .eks-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+}
+.eks-logo {
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 14px;
+  line-height: 1.2;
+}
+.eks-logo.footer {
+  margin-bottom: 8px;
+}
+.eks-nav {
+  display: flex;
+  gap: 18px;
+}
+.eks-nav a {
+  color: var(--eks-muted);
+  font-size: 14px;
+  text-decoration: none;
+}
+.eks-nav a:hover {
+  color: var(--eks-accent);
+}
+
+/* Бургер */
+.eks-burger {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.eks-burger span {
+  display: block;
+  width: 26px;
+  height: 3px;
+  background: var(--eks-text);
+  margin: 4px 0;
+  border-radius: 999px;
+}
+
+/* Hero */
+.hero {
+  padding: 70px 0 40px;
+  background: radial-gradient(circle at top left, #1f3356 0, #060f21 60%, #02030a 100%);
+  overflow: hidden;
+}
+.hero-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 40px;
+}
+.hero-text h1 {
+  font-size: 32px;
+  margin-bottom: 12px;
+}
+.hero-text p {
+  color: var(--eks-muted);
+  max-width: 460px;
+}
+.hero-actions {
+  margin: 18px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.hero-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  color: var(--eks-muted);
+  font-size: 14px;
+}
+.hero-list li::before {
+  content: "• ";
+  color: var(--eks-accent);
+}
+.hero-scooter-wrapper {
+  min-width: 260px;
+  display: flex;
+  justify-content: center;
+}
+.hero-scooter {
+  max-width: 320px;
+  filter: drop-shadow(0 18px 38px rgba(0,0,0,0.9));
+  transition: transform 0.2s ease-out;
+}
+
+/* Кнопки */
+.btn,
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 20px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.btn {
+  background: var(--eks-accent);
+  color: #02030a;
+}
+.btn:hover {
+  background: var(--eks-accent-hover);
+  transform: translateY(-1px);
+}
+.btn-ghost {
+  background: transparent;
+  border: 1px solid rgba(182,255,43,0.6);
+  color: var(--eks-accent);
+}
+.btn-ghost:hover {
+  background: rgba(182,255,43,0.1);
+}
+
+/* Текст */
+.eks-muted {
+  color: var(--eks-muted);
+}
+.small {
+  font-size: 12px;
+}
+
+/* Секции */
+.services {
+  margin: 45px auto;
+}
+.services h2 {
+  margin-bottom: 20px;
+}
+.services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+.service-card {
+  background: var(--eks-card);
+  border-radius: 18px;
+  padding: 16px 18px;
+  box-shadow: 0 10px 26px rgba(0,0,0,0.5);
+}
+
+/* Популярные */
+.popular {
+  margin: 40px auto 55px;
+}
+.popular-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.link-muted {
+  color: var(--eks-muted);
+  text-decoration: none;
+  font-size: 13px;
+}
+
+/* Карточки товара */
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 18px;
+}
+.product-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--eks-card);
+  border-radius: 18px;
+  padding: 12px 14px 16px;
+  text-decoration: none;
+  color: var(--eks-text);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.6);
+  opacity: 0;
+  transform: translateY(18px);
+  transition: 0.4s ease;
+}
+.product-card.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+.product-card:hover {
+  transform: translateY(-6px);
+}
+.product-thumb {
+  margin-bottom: 10px;
+}
+.product-thumb img {
+  width: 100%;
+  border-radius: 14px;
+}
+.product-card h4 {
+  margin: 0 0 4px;
+  font-size: 14px;
+}
+.product-code {
+  font-size: 12px;
+  color: var(--eks-muted);
+}
+.product-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}
+.price {
+  font-weight: 700;
+  color: var(--eks-accent);
+}
+.badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+}
+.badge-in {
+  background: #1b7d2c;
+}
+.badge-await {
+  background: #b07915;
+}
+
+/* Каталог */
+.catalog-page {
+  padding: 60px 0;
+}
+.catalog-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-end;
+  margin-bottom: 22px;
+}
+.catalog-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.catalog-filters input,
+.catalog-filters select {
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.06);
+  padding: 8px 14px;
+  background: #050f22;
+  color: var(--eks-text);
+}
+.catalog-filters input::placeholder {
+  color: var(--eks-muted);
+}
+
+/* Страница товара */
+.product-page {
+  padding: 60px 0;
+}
+.product-detail-card {
+  background: var(--eks-card);
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 14px 32px rgba(0,0,0,0.7);
+}
+.product-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+  gap: 22px;
+}
+.product-detail-image img {
+  width: 100%;
+  border-radius: 16px;
+}
+.product-detail-price {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin: 12px 0;
+}
+.product-detail-desc {
+  margin-bottom: 16px;
+}
+
+/* Контакты / карта */
+.contact-section {
+  margin-bottom: 50px;
+}
+.map-wrapper {
+  margin-top: 18px;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+#map {
+  width: 100%;
+  height: 320px;
+}
+.map-hint {
+  padding: 8px 12px 12px;
+  background: rgba(0,0,0,0.5);
+  font-size: 13px;
+}
+
+/* Футер */
+.eks-footer {
+  background: #02040b;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  margin-top: 40px;
+}
+.eks-footer-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 20px;
+  padding: 24px 16px 16px;
+}
+.eks-footer-grid h4 {
+  margin-top: 0;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+.eks-footer-grid ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.eks-footer-grid li {
+  margin-bottom: 4px;
+}
+.eks-footer-grid a {
+  color: var(--eks-muted);
+  text-decoration: none;
+  font-size: 13px;
+}
+.eks-footer-grid a:hover {
+  color: var(--eks-accent);
+}
+.eks-footer-bottom {
+  text-align: center;
+  padding: 10px 0 16px;
+  font-size: 12px;
+  color: var(--eks-muted);
+}
+
+/* Логин / админка */
+.login-box {
+  max-width: 360px;
+  margin: 120px auto;
+  background: var(--eks-card);
+  padding: 24px 20px 20px;
+  border-radius: 18px;
+  box-shadow: 0 14px 34px rgba(0,0,0,0.7);
+}
+.login-box h2 {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+.login-box input {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: #060f21;
+  color: var(--eks-text);
+  margin-bottom: 10px;
+}
+
+/* Админка */
+.admin-container {
+  padding: 60px 0 40px;
+}
+.admin-panel {
+  background: var(--eks-card);
+  border-radius: 18px;
+  padding: 18px 18px 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.7);
+}
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.admin-grid input,
+.admin-grid select,
+.admin-grid textarea {
+  width: 100%;
+  padding: 9px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: #061021;
+  color: var(--eks-text);
+  font-size: 13px;
+}
+.admin-grid textarea {
+  min-height: 70px;
+  resize: vertical;
+}
+.file-field label {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 6px;
+  color: var(--eks-muted);
+}
+.file-field input[type="file"] {
+  font-size: 12px;
+}
+.admin-list-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.admin-list-head input {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: #061021;
+  color: var(--eks-text);
+}
+.product-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  padding: 10px 12px;
+  background: #050e1f;
+  border-radius: 12px;
+  margin-bottom: 8px;
+}
+.row-main {
+  flex: 1;
+}
+.row-buttons {
+  display: flex;
+  gap: 8px;
+}
+.btn-small {
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: none;
+  font-size: 12px;
+  cursor: pointer;
+}
+.btn-red {
+  background: #b52222;
+  color: #fff;
+}
+.edit-preview {
+  max-width: 140px;
+  border-radius: 10px;
+  display: block;
+  margin-bottom: 6px;
+}
+.edit-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+/* Адаптив */
+@media (max-width: 800px) {
+  .hero-inner {
+    flex-direction: column-reverse;
+    text-align: center;
+  }
+  .hero-text p {
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .eks-footer-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .eks-nav {
+    position: absolute;
+    top: 54px;
+    right: 12px;
+    background: #050f22;
+    padding: 10px 14px;
+    border-radius: 14px;
+    flex-direction: column;
+    gap: 8px;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-8px);
+    transition: 0.18s ease;
+  }
+  .eks-nav.open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+  .eks-burger {
+    display: block;
+  }
+  .catalog-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .product-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
